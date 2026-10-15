@@ -1,8 +1,0 @@
-target/
-.idea/
-*.iml
-.env
-*.log
-logs/
-*.tmp
-*.temp
