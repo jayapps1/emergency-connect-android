@@ -1,0 +1,17 @@
+<resources>
+    <!-- Twi Localized Resources. Professional agency review required prior to production. -->
+    <string name="app_name">Ghana Emergency Connect</string>
+    <string name="title_emergency_services">Ntamgyina Dwumadibea</string>
+    <string name="title_report_incident">Bɔ Asiane amanneɛ</string>
+    <string name="title_safety_info">Bammɔ ho Nsɛm</string>
+    <string name="title_nearby_stations">Gyinabea a ɛbɛn</string>
+    <string name="call_button_label">Frɛ</string>
+    <string name="national_emergency_button">Frɛ 112 (Ɔman Nsianebɔ)</string>
+    <string name="title_settings">Nhyehyɛe</string>
+    <string name="section_appearance">Asubura</string>
+    <string name="section_language">Kasa</string>
+    <string name="section_accessibility">Mmoa Dwumadi</string>
+    <string name="theme_system">Sistem Nhyehyɛe</string>
+    <string name="theme_light">Hann</string>
+    <string name="theme_dark">Sum</string>
+</resources>

@@ -1,0 +1,14 @@
+<resources>
+    <!-- Ga Localized Resources. Professional agency review required prior to production. -->
+    <string name="app_name">Ghana Emergency Connect</string>
+    <string name="title_emergency_services">Osyato Sɔɔmo Nii</string>
+    <string name="title_report_incident">Bɔ Osyato Kpɔ</string>
+    <string name="title_safety_info">Yiwalaheremɔ Saji</string>
+    <string name="title_nearby_stations">He heni bɛŋkɛ</string>
+    <string name="call_button_label">Tsɛmɔ</string>
+    <string name="national_emergency_button">Tsɛmɔ 112 (Maŋ Osyato)</string>
+    <string name="title_settings">Toi-Saa</string>
+    <string name="section_appearance">Saa</string>
+    <string name="section_language">Wiemɔ</string>
+    <string name="section_accessibility">Yiwalaheremɔ Mɔ</string>
+</resources>

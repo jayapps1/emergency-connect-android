@@ -1,0 +1,47 @@
+package com.gec.emergency.data.remote
+
+import com.gec.emergency.data.remote.dto.AgencyResponseDto
+import com.gec.emergency.data.remote.dto.IncidentCategoryResponseDto
+import com.gec.emergency.data.remote.dto.IncidentReportRequestDto
+import com.gec.emergency.data.remote.dto.IncidentReportResponseDto
+import com.gec.emergency.data.remote.dto.StationContactResponseDto
+import com.gec.emergency.data.remote.dto.StationDetailsResponseDto
+import com.gec.emergency.data.remote.dto.StationResponseDto
+import com.gec.emergency.data.remote.dto.TrackedReportResponseDto
+import retrofit2.Response
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.Header
+import retrofit2.http.POST
+import retrofit2.http.Path
+import retrofit2.http.Query
+
+interface EmergencyDirectoryApi {
+
+    @GET("api/v1/public/agencies")
+    suspend fun getAgencies(): Response<List<AgencyResponseDto>>
+
+    @GET("api/v1/public/agencies/{agencyId}")
+    suspend fun getAgency(@Path("agencyId") agencyId: String): Response<AgencyResponseDto>
+
+    @GET("api/v1/public/agencies/{agencyId}/stations")
+    suspend fun getStationsByAgency(@Path("agencyId") agencyId: String): Response<List<StationResponseDto>>
+
+    @GET("api/v1/public/stations/{stationId}")
+    suspend fun getStationDetails(@Path("stationId") stationId: String): Response<StationDetailsResponseDto>
+
+    @GET("api/v1/public/stations/{stationId}/contacts")
+    suspend fun getStationContacts(@Path("stationId") stationId: String): Response<List<StationContactResponseDto>>
+
+    @GET("api/v1/public/incident-categories")
+    suspend fun getIncidentCategories(@Query("mode") mode: String? = null): Response<List<IncidentCategoryResponseDto>>
+
+    @POST("api/v1/public/reports")
+    suspend fun submitReport(@Body request: IncidentReportRequestDto): Response<IncidentReportResponseDto>
+
+    @GET("api/v1/public/reports/track/{publicReference}")
+    suspend fun trackReport(
+        @Path("publicReference") publicReference: String,
+        @Header("X-Report-Token") trackingToken: String,
+    ): Response<TrackedReportResponseDto>
+}

@@ -1,10 +1,13 @@
-# =========================
-# Android Studio
-# =========================
+# Web projects must never enter Android repository
+backend/
+frontend/
+
+# Android / Gradle
 *.iml
 .gradle
 build/
 app/build/
+*/build/
 .idea/
 local.properties
 .DS_Store
@@ -12,52 +15,11 @@ captures/
 .externalNativeBuild
 .cxx/
 
-# =========================
-# Java / Spring Boot
-# =========================
-backend/target/
-backend/.idea/
-backend/*.iml
-
-# =========================
-# React / Vite
-# =========================
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
-
-# =========================
-# Environment files
-# =========================
-backend/.env
-frontend/.env
-frontend/.env.local
-frontend/.env.*.local
-
-# Keep examples if you create them
-!backend/.env.example
-!frontend/.env.example
-
-# =========================
-# VS Code
-# =========================
-.vscode/
-
-# =========================
-# OS files
-# =========================
+# OS / Logs
 Thumbs.db
 desktop.ini
-
-# =========================
-# Logs
-# =========================
 *.log
 logs/
-
-# =========================
-# Temporary files
-# =========================
 *.tmp
 *.temp
 *.swp

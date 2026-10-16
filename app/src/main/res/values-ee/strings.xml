@@ -1,0 +1,14 @@
+<resources>
+    <!-- Ewe Localized Resources. Professional agency review required prior to production. -->
+    <string name="app_name">Ghana Emergency Connect</string>
+    <string name="title_emergency_services">Kpodogo Subɔsubɔwo</string>
+    <string name="title_report_incident">Ɖe Afɔku Fia</string>
+    <string name="title_safety_info">Dedienɔnɔ Nyawo</string>
+    <string name="title_nearby_stations">Dɔwɔfe siwo te ɖe ŋuwò</string>
+    <string name="call_button_label">Yɔ</string>
+    <string name="national_emergency_button">Yɔ 112 (Dukɔa fe Kpodogo)</string>
+    <string name="title_settings">Ɖoɖowo</string>
+    <string name="section_appearance">Dzedzeme</string>
+    <string name="section_language">Gbe</string>
+    <string name="section_accessibility">Mɔnuwo</string>
+</resources>
