@@ -2,6 +2,8 @@ package com.gec.emergency.domain
 
 import com.gec.emergency.domain.model.AgencyType
 import com.gec.emergency.domain.model.OfflineEmergencyContact
+import com.gec.emergency.domain.model.OfflineRegionalHeadquartersContact
+import com.gec.emergency.domain.model.RegionRef
 import com.gec.emergency.domain.repository.OfflineEmergencyDirectoryRepository
 import com.gec.emergency.domain.usecase.GetOfflineEmergencyContactsUseCase
 import com.gec.emergency.domain.usecase.GetPrimaryNationalEmergencyContactUseCase
@@ -57,6 +59,18 @@ class GetPrimaryNationalEmergencyContactUseCaseTest {
 
         override fun getContactsByAgencyType(type: AgencyType): Flow<List<OfflineEmergencyContact>> {
             return flowOf(emptyList())
+        }
+
+        override fun getRegionalHeadquartersContacts(regionName: String?): Flow<List<OfflineRegionalHeadquartersContact>> {
+            return flowOf(emptyList())
+        }
+
+        override fun getRegions(): Flow<List<RegionRef>> {
+            return flowOf(emptyList())
+        }
+
+        override suspend fun syncOfflineDirectory(): Boolean {
+            return true
         }
     }
 

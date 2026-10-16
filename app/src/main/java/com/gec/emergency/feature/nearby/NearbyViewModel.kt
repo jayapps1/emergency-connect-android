@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gec.emergency.core.location.LocationProvider
 import com.gec.emergency.core.location.LocationResult
+import com.gec.emergency.domain.model.GeoLocation
 import com.gec.emergency.domain.model.NearbyStation
 import com.gec.emergency.domain.model.NearbyStationQuery
 import com.gec.emergency.domain.usecase.GetActiveAgenciesUseCase
@@ -31,6 +32,7 @@ class NearbyViewModel @Inject constructor(
 
     init {
         loadActiveAgencies()
+        fetchNearbyStations()
     }
 
     private fun loadActiveAgencies() {
@@ -60,17 +62,13 @@ class NearbyViewModel @Inject constructor(
             permissionState = state,
             isLoadingLocation = false,
             locationAvailable = false,
+            isLocationDisabled = false,
         )
+        fetchNearbyStations()
     }
 
     fun setSelectedAgency(agencyId: String?) {
         _uiState.value = _uiState.value.copy(selectedAgencyId = agencyId)
-        fetchNearbyStations()
-    }
-
-    fun setSearchRadius(radiusKm: Double) {
-        if (radiusKm <= 0.0) return
-        _uiState.value = _uiState.value.copy(searchRadiusKm = radiusKm)
         fetchNearbyStations()
     }
 
@@ -79,6 +77,7 @@ class NearbyViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(
                 isLoadingLocation = true,
                 errorMessage = null,
+                isLocationDisabled = false,
             )
 
             when (val result = locationProvider.getCurrentLocation()) {
@@ -88,6 +87,7 @@ class NearbyViewModel @Inject constructor(
                         currentLocation = result.location,
                         locationAccuracyMeters = result.location.accuracyMeters,
                         locationAvailable = true,
+                        isLocationDisabled = false,
                         errorMessage = null,
                     )
                     fetchNearbyStations()
@@ -99,34 +99,40 @@ class NearbyViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         isLoadingLocation = false,
                         locationAvailable = false,
-                        errorMessage = "Location services are turned off.",
+                        isLocationDisabled = true,
+                        errorMessage = null,
                     )
+                    fetchNearbyStations()
                 }
                 LocationResult.Unavailable -> {
                     _uiState.value = _uiState.value.copy(
                         isLoadingLocation = false,
                         locationAvailable = false,
-                        errorMessage = "Unable to retrieve current location.",
+                        isLocationDisabled = false,
+                        errorMessage = null,
                     )
+                    fetchNearbyStations()
                 }
                 is LocationResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoadingLocation = false,
                         locationAvailable = false,
-                        errorMessage = result.message ?: "An error occurred fetching location.",
+                        isLocationDisabled = false,
+                        errorMessage = result.message,
                     )
+                    fetchNearbyStations()
                 }
             }
         }
     }
 
-    private fun fetchNearbyStations() {
-        val location = _uiState.value.currentLocation ?: return
+    fun fetchNearbyStations() {
+        val location = _uiState.value.currentLocation ?: GeoLocation(0.0, 0.0)
         viewModelScope.launch {
             val query = NearbyStationQuery(
                 location = location,
                 agencyId = _uiState.value.selectedAgencyId,
-                radiusKm = _uiState.value.searchRadiusKm,
+                radiusKm = 100000.0, // No radius limit
             )
             getNearbyStationsUseCase(query)
                 .onStart {
@@ -155,11 +161,13 @@ class NearbyViewModel @Inject constructor(
                 getPreferredStationContactUseCase(station.id)
                     .catch { /* ignore error */ }
                     .collect { contact ->
+                        val map = _uiState.value.preferredContacts.toMutableMap()
                         if (contact != null) {
-                            val map = _uiState.value.preferredContacts.toMutableMap()
                             map[station.id] = contact
-                            _uiState.value = _uiState.value.copy(preferredContacts = map)
+                        } else {
+                            map.remove(station.id)
                         }
+                        _uiState.value = _uiState.value.copy(preferredContacts = map)
                     }
             }
         }

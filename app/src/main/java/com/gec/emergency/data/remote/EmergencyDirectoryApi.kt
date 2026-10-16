@@ -4,6 +4,7 @@ import com.gec.emergency.data.remote.dto.AgencyResponseDto
 import com.gec.emergency.data.remote.dto.IncidentCategoryResponseDto
 import com.gec.emergency.data.remote.dto.IncidentReportRequestDto
 import com.gec.emergency.data.remote.dto.IncidentReportResponseDto
+import com.gec.emergency.data.remote.dto.RegionRefResponseDto
 import com.gec.emergency.data.remote.dto.StationContactResponseDto
 import com.gec.emergency.data.remote.dto.StationDetailsResponseDto
 import com.gec.emergency.data.remote.dto.StationResponseDto
@@ -32,6 +33,18 @@ interface EmergencyDirectoryApi {
 
     @GET("api/v1/public/stations/{stationId}/contacts")
     suspend fun getStationContacts(@Path("stationId") stationId: String): Response<List<StationContactResponseDto>>
+
+    @GET("api/v1/public/stations/headquarters")
+    suspend fun getPublicHeadquarters(): Response<List<StationDetailsResponseDto>>
+
+    @GET("api/v1/public/stations/headquarters/agencies/{agencyId}/regions/{regionId}")
+    suspend fun getPublicRegionalHeadquarters(
+        @Path("agencyId") agencyId: String,
+        @Path("regionId") regionId: String,
+    ): Response<StationDetailsResponseDto>
+
+    @GET("api/v1/public/regions")
+    suspend fun getPublicRegions(): Response<List<RegionRefResponseDto>>
 
     @GET("api/v1/public/incident-categories")
     suspend fun getIncidentCategories(@Query("mode") mode: String? = null): Response<List<IncidentCategoryResponseDto>>

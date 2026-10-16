@@ -60,6 +60,9 @@
 
     <string name="location_unavailable_title">We couldn\'t determine your location.</string>
     <string name="location_unavailable_message">Please make sure location services are turned on for your device.</string>
+    <string name="location_services_disabled_title" translatable="false">Location services are turned off.</string>
+    <string name="location_services_disabled_message" translatable="false">Turn on location services to find emergency stations near you.</string>
+    <string name="open_location_settings" translatable="false">Turn On Location</string>
     <string name="no_stations_in_radius">No verified stations found within %1$d km.</string>
     <string name="increase_search_radius">Increase Search Radius</string>
     <string name="try_again">Try Again</string>

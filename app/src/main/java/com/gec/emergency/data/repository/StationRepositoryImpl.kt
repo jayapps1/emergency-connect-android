@@ -71,20 +71,25 @@ class StationRepositoryImpl @Inject constructor(
             }
         }
 
-        val nearbyStations = allStations
+        val hasValidLocation = query.location.latitude != 0.0 || query.location.longitude != 0.0
+
+        val stations = allStations
             .filter { it.isActive && it.isVerified }
             .map { station ->
-                val stationLocation = GeoLocation(
-                    latitude = station.latitude,
-                    longitude = station.longitude,
-                )
-                val distance = distanceCalculator.distanceKm(query.location, stationLocation)
+                val distance = if (hasValidLocation) {
+                    distanceCalculator.distanceKm(query.location, GeoLocation(station.latitude, station.longitude))
+                } else {
+                    0.0
+                }
                 NearbyStation(station = station, distanceKm = distance)
             }
-            .filter { it.distanceKm <= query.radiusKm }
-            .sortedBy { it.distanceKm }
-            .take(query.limit)
 
-        emit(nearbyStations)
+        val sortedStations = if (hasValidLocation) {
+            stations.sortedBy { it.distanceKm }
+        } else {
+            stations.sortedWith(compareBy({ it.station.region }, { it.station.district }, { it.station.name }))
+        }
+
+        emit(sortedStations.take(query.limit))
     }
 }

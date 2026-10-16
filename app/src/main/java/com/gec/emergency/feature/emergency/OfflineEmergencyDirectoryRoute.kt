@@ -52,8 +52,14 @@ fun OfflineEmergencyDirectoryRoute(
             OfflineEmergencyDirectoryScreen(
                 uiState = uiState,
                 onBackClick = onBackClick,
+                onRegionSelected = { regionName ->
+                    viewModel.selectRegion(regionName)
+                },
                 onMakeCall = { contact, fastCall ->
                     viewModel.makeCall(contact, fastCall)
+                },
+                onMakeRhqCall = { rhqContact ->
+                    viewModel.makeRhqCall(rhqContact)
                 },
             )
         }

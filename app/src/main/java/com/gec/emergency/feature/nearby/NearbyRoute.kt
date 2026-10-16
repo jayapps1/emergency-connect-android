@@ -68,7 +68,6 @@ fun NearbyRoute(
         onStationClick = onStationClick,
         onRefreshLocationClick = { viewModel.refreshLocation() },
         onAgencySelected = { agencyId -> viewModel.setSelectedAgency(agencyId) },
-        onRadiusSelected = { radius -> viewModel.setSearchRadius(radius) },
         modifier = modifier,
     )
 }

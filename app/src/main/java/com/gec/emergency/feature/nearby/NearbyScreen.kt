@@ -1,5 +1,7 @@
 package com.gec.emergency.feature.nearby
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -67,7 +69,6 @@ fun NearbyScreen(
     onStationClick: (String) -> Unit,
     onRefreshLocationClick: () -> Unit,
     onAgencySelected: (String?) -> Unit,
-    onRadiusSelected: (Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -76,7 +77,7 @@ fun NearbyScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.title_nearby_stations)) },
+                title = { Text("Emergency Stations") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -106,20 +107,6 @@ fun NearbyScreen(
             contentAlignment = Alignment.TopCenter,
         ) {
             when {
-                // Permission not granted
-                uiState.permissionState != LocationPermissionState.Granted -> {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        LocationPermissionCard(
-                            onGrantPermissionClick = onGrantPermissionClick,
-                            onContinueWithoutLocationClick = onBrowseAllServicesClick,
-                        )
-                    }
-                }
-
                 // Location is loading
                 uiState.isLoadingLocation -> {
                     Column(
@@ -136,18 +123,33 @@ fun NearbyScreen(
                     }
                 }
 
-                // Location available
-                uiState.locationAvailable -> {
+                else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         // Location Status Header
-                        item {
-                            LocationStatusCard(
-                                accuracyMeters = uiState.locationAccuracyMeters,
-                                onRefreshClick = onRefreshLocationClick,
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
+                        if (uiState.locationAvailable) {
+                            item {
+                                LocationStatusCard(
+                                    accuracyMeters = uiState.locationAccuracyMeters,
+                                    onRefreshClick = onRefreshLocationClick,
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+                        } else {
+                            item {
+                                LocationDisabledBanner(
+                                    onGrantPermissionClick = onGrantPermissionClick,
+                                    onOpenSettingsClick = {
+                                        try {
+                                            context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                                        } catch (_: Exception) {
+                                            onRefreshLocationClick()
+                                        }
+                                    }
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
                         }
 
                         // Agency Filter Chips
@@ -156,15 +158,6 @@ fun NearbyScreen(
                                 agencies = uiState.agencies,
                                 selectedAgencyId = uiState.selectedAgencyId,
                                 onAgencySelected = onAgencySelected,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-
-                        // Radius Filter Chips
-                        item {
-                            RadiusFilterRow(
-                                selectedRadiusKm = uiState.searchRadiusKm,
-                                onRadiusSelected = onRadiusSelected,
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                         }
@@ -176,59 +169,80 @@ fun NearbyScreen(
                                 NearbyStationCard(
                                     nearbyStation = nearbyStation,
                                     preferredContact = preferredContact,
-                                    formattedDistance = DistanceFormatter.formatDistance(context, nearbyStation.distanceKm),
+                                    locationAvailable = uiState.locationAvailable,
+                                    formattedDistance = if (uiState.locationAvailable) DistanceFormatter.formatDistance(context, nearbyStation.distanceKm) else "",
                                     onClick = { onStationClick(nearbyStation.station.id) },
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
                             }
                         } else {
                             item {
-                                EmptyNearbyStationsCard(
-                                    radiusKm = uiState.searchRadiusKm.toInt(),
-                                    onIncreaseRadiusClick = { onRadiusSelected(50.0) },
-                                    onBrowseAllClick = onBrowseAllServicesClick,
-                                )
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    ),
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(20.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                    ) {
+                                        Text(
+                                            text = "No active stations found for the selected filter.",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            textAlign = TextAlign.Center,
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        OutlinedButton(
+                                            onClick = { onAgencySelected(null) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        ) {
+                                            Text("Show All Services")
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
+            }
+        }
+    }
+}
 
-                // Location unavailable / error
-                else -> {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = uiState.errorMessage
-                                ?: stringResource(R.string.location_unavailable_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(R.string.location_unavailable_message),
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Button(
-                            onClick = onRefreshLocationClick,
-                            modifier = Modifier.fillMaxWidth(0.8f),
-                        ) {
-                            Text(stringResource(R.string.try_again))
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = onBrowseAllServicesClick,
-                            modifier = Modifier.fillMaxWidth(0.8f),
-                        ) {
-                            Text(stringResource(R.string.browse_all_services))
-                        }
-                    }
+@Composable
+private fun LocationDisabledBanner(
+    onGrantPermissionClick: () -> Unit,
+    onOpenSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Text(
+                text = "GPS Location Unavailable",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Text(
+                text = "Showing all emergency stations sorted by region & name. Enable GPS for distance calculation.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onGrantPermissionClick) {
+                    Text("Grant GPS")
+                }
+                OutlinedButton(onClick = onOpenSettingsClick) {
+                    Text("Settings")
                 }
             }
         }
@@ -328,31 +342,10 @@ private fun AgencyFilterRow(
 }
 
 @Composable
-private fun RadiusFilterRow(
-    selectedRadiusKm: Double,
-    onRadiusSelected: (Double) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val radiusOptions = listOf(5.0, 10.0, 25.0, 50.0)
-
-    LazyRow(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        items(radiusOptions) { radius ->
-            FilterChip(
-                selected = selectedRadiusKm == radius,
-                onClick = { onRadiusSelected(radius) },
-                label = { Text(stringResource(R.string.search_radius_chip, radius.toInt())) },
-            )
-        }
-    }
-}
-
-@Composable
 private fun NearbyStationCard(
     nearbyStation: NearbyStation,
     preferredContact: StationContact?,
+    locationAvailable: Boolean,
     formattedDistance: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -407,19 +400,21 @@ private fun NearbyStationCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
-                Text(
-                    text = formattedDistance,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                )
+                if (locationAvailable && formattedDistance.isNotBlank()) {
+                    Text(
+                        text = formattedDistance,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
 
-            if (preferredContact != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
 
+            if (preferredContact != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -453,46 +448,23 @@ private fun NearbyStationCard(
                         Text(stringResource(R.string.call_button_label))
                     }
                 }
-            }
-        }
-    }
-}
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Contact currently unavailable",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium,
+                    )
 
-@Composable
-private fun EmptyNearbyStationsCard(
-    radiusKm: Int,
-    onIncreaseRadiusClick: () -> Unit,
-    onBrowseAllClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = stringResource(R.string.no_stations_in_radius, radiusKm),
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = onIncreaseRadiusClick,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.increase_search_radius))
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedButton(
-                onClick = onBrowseAllClick,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.browse_all_stations))
+                    OutlinedButton(onClick = onClick) {
+                        Text("View Details")
+                    }
+                }
             }
         }
     }
@@ -542,7 +514,6 @@ fun NearbyScreenPreview() {
             onStationClick = {},
             onRefreshLocationClick = {},
             onAgencySelected = {},
-            onRadiusSelected = {},
         )
     }
 }

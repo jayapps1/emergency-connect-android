@@ -17,4 +17,5 @@ data class NearbyUiState(
     val searchRadiusKm: Double = 25.0,
     val errorMessage: String? = null,
     val locationAvailable: Boolean = false,
+    val isLocationDisabled: Boolean = false,
 )
