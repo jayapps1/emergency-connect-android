@@ -8,6 +8,6 @@ class GetIncidentCategoriesUseCase @Inject constructor(
     private val repository: IncidentReportRepository,
 ) {
     suspend operator fun invoke(): List<IncidentCategory> {
-        return repository.getCategories()
+        return repository.getCategories("GENERAL")
     }
 }

@@ -9,11 +9,16 @@ import com.gec.emergency.data.remote.dto.StationContactResponseDto
 import com.gec.emergency.data.remote.dto.StationDetailsResponseDto
 import com.gec.emergency.data.remote.dto.StationResponseDto
 import com.gec.emergency.data.remote.dto.TrackedReportResponseDto
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -51,6 +56,15 @@ interface EmergencyDirectoryApi {
 
     @POST("api/v1/public/reports")
     suspend fun submitReport(@Body request: IncidentReportRequestDto): Response<IncidentReportResponseDto>
+
+    @Multipart
+    @POST("api/v1/public/reports/{reportId}/attachments")
+    suspend fun uploadReportAttachment(
+        @Path("reportId") reportId: String,
+        @Header("X-Report-Token") trackingToken: String,
+        @Part("mediaType") mediaType: RequestBody,
+        @Part file: MultipartBody.Part,
+    ): Response<ResponseBody>
 
     @GET("api/v1/public/reports/track/{publicReference}")
     suspend fun trackReport(

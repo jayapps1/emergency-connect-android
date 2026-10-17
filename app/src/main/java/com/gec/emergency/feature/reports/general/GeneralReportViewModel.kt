@@ -55,7 +55,18 @@ class GeneralReportViewModel @Inject constructor(
     }
 
     fun selectCategory(category: IncidentCategory) {
-        _uiState.value = _uiState.value.copy(selectedCategory = category)
+        val isReckless = category.code == "RECKLESS_DRIVING"
+        if (!isReckless) {
+            _uiState.value = _uiState.value.copy(
+                selectedCategory = category,
+                vehicleRegistrationNumber = "",
+                vehicleType = "",
+                vehicleColour = "",
+                directionOfTravel = "",
+            )
+        } else {
+            _uiState.value = _uiState.value.copy(selectedCategory = category)
+        }
     }
 
     fun updateDescription(value: String) {
@@ -63,7 +74,8 @@ class GeneralReportViewModel @Inject constructor(
     }
 
     fun updateVehicleRegistration(value: String) {
-        _uiState.value = _uiState.value.copy(vehicleRegistrationNumber = value)
+        val formatted = value.take(20).uppercase()
+        _uiState.value = _uiState.value.copy(vehicleRegistrationNumber = formatted)
     }
 
     fun updateVehicleType(value: String) {
@@ -109,26 +121,41 @@ class GeneralReportViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSubmitting = true, errorMessage = null)
 
-            val location = _uiState.value.currentLocation?.let { loc ->
-                ReportLocation(geoLocation = loc)
+            var loc = _uiState.value.currentLocation
+            val locAgeMs = System.currentTimeMillis() - (loc?.timestampMillis ?: 0L)
+            if (loc == null || locAgeMs > 5 * 60 * 1000L) {
+                val freshResult = locationProvider.getCurrentLocation()
+                if (freshResult is LocationResult.Success) {
+                    loc = freshResult.location
+                    _uiState.value = _uiState.value.copy(
+                        currentLocation = loc,
+                        locationAccuracyMeters = loc.accuracyMeters,
+                        isLocationAvailable = true,
+                    )
+                }
             }
 
+            val location = loc?.let {
+                ReportLocation(geoLocation = it)
+            }
+
+            val isReckless = category.code == "RECKLESS_DRIVING"
             val hasVehicleInfo = _uiState.value.vehicleRegistrationNumber.isNotBlank() ||
                     _uiState.value.vehicleType.isNotBlank() ||
                     _uiState.value.vehicleColour.isNotBlank() ||
                     _uiState.value.directionOfTravel.isNotBlank()
 
-            val vehicleInfo = if (hasVehicleInfo) {
+            val vehicleInfo = if (isReckless && hasVehicleInfo) {
                 VehicleInfo(
-                    registrationNumber = _uiState.value.vehicleRegistrationNumber.ifBlank { null },
-                    vehicleType = _uiState.value.vehicleType.ifBlank { null },
-                    colour = _uiState.value.vehicleColour.ifBlank { null },
-                    directionOfTravel = _uiState.value.directionOfTravel.ifBlank { null },
+                    registrationNumber = _uiState.value.vehicleRegistrationNumber.trim().ifBlank { null },
+                    vehicleType = _uiState.value.vehicleType.trim().ifBlank { null },
+                    colour = _uiState.value.vehicleColour.trim().ifBlank { null },
+                    directionOfTravel = _uiState.value.directionOfTravel.trim().ifBlank { null },
                 )
             } else null
 
             val report = IncidentReport(
-                id = "rpt_${UUID.randomUUID()}",
+                id = UUID.randomUUID().toString(),
                 categoryId = category.id,
                 mode = ReportMode.GENERAL,
                 description = _uiState.value.description.ifBlank { null },

@@ -61,6 +61,8 @@ fun GeneralReportScreen(
     onViewReportDetails: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isReckless = uiState.selectedCategory?.code == "RECKLESS_DRIVING"
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -129,7 +131,7 @@ fun GeneralReportScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "This is a development build. No agency has received this report.",
+                                    text = "Your report has been sent to responsible emergency dispatchers.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -176,6 +178,7 @@ fun GeneralReportScreen(
                             LocationSection(
                                 isAvailable = uiState.isLocationAvailable,
                                 isFetching = uiState.isFetchingLocation,
+                                location = uiState.currentLocation,
                                 accuracyMeters = uiState.locationAccuracyMeters,
                                 onRefreshLocation = onRefreshLocation,
                             )
@@ -199,51 +202,57 @@ fun GeneralReportScreen(
                             Spacer(modifier = Modifier.height(16.dp))
                         }
 
-                        // Optional Vehicle Information
-                        item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Text(
-                                        text = "Optional Vehicle Details",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
-                                        value = uiState.vehicleRegistrationNumber,
-                                        onValueChange = onVehicleRegChange,
-                                        label = { Text("Vehicle Reg / Plate Number") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Row(modifier = Modifier.fillMaxWidth()) {
-                                        OutlinedTextField(
-                                            value = uiState.vehicleType,
-                                            onValueChange = onVehicleTypeChange,
-                                            label = { Text("Vehicle Type / Make") },
-                                            modifier = Modifier.weight(1f),
+                        // Conditional Optional Vehicle Information
+                        if (isReckless) {
+                            item {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Text(
+                                            text = "Optional Vehicle Details",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Spacer(modifier = Modifier.height(8.dp))
                                         OutlinedTextField(
-                                            value = uiState.vehicleColour,
-                                            onValueChange = onVehicleColourChange,
-                                            label = { Text("Colour") },
-                                            modifier = Modifier.weight(1f),
+                                            value = uiState.vehicleRegistrationNumber,
+                                            onValueChange = onVehicleRegChange,
+                                            label = { Text("Vehicle Reg / Plate Number") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            singleLine = true,
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Row(modifier = Modifier.fillMaxWidth()) {
+                                            OutlinedTextField(
+                                                value = uiState.vehicleType,
+                                                onValueChange = onVehicleTypeChange,
+                                                label = { Text("Vehicle Type / Make") },
+                                                modifier = Modifier.weight(1f),
+                                                singleLine = true,
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            OutlinedTextField(
+                                                value = uiState.vehicleColour,
+                                                onValueChange = onVehicleColourChange,
+                                                label = { Text("Colour") },
+                                                modifier = Modifier.weight(1f),
+                                                singleLine = true,
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        OutlinedTextField(
+                                            value = uiState.directionOfTravel,
+                                            onValueChange = onDirectionChange,
+                                            label = { Text("Direction of Travel") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            singleLine = true,
                                         )
                                     }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
-                                        value = uiState.directionOfTravel,
-                                        onValueChange = onDirectionChange,
-                                        label = { Text("Direction of Travel") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
                                 }
+                                Spacer(modifier = Modifier.height(24.dp))
                             }
-                            Spacer(modifier = Modifier.height(24.dp))
                         }
 
                         if (uiState.errorMessage != null) {
@@ -338,14 +347,17 @@ private fun CategoryCard(
 private fun LocationSection(
     isAvailable: Boolean,
     isFetching: Boolean,
+    location: GeoLocation?,
     accuracyMeters: Double?,
     onRefreshLocation: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isPlausible = location?.isPlausibleForGhana() == true
+
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = if (isAvailable && !isPlausible) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant,
         ),
     ) {
         Row(
@@ -355,24 +367,29 @@ private fun LocationSection(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                 Icon(
                     imageVector = Icons.Default.LocationOn,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = if (isAvailable && !isPlausible) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.primary,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                        text = if (isAvailable) "Location detected" else "Location optional / unavailable",
+                        text = when {
+                            isAvailable && isPlausible -> "Location detected"
+                            isAvailable && !isPlausible -> "Location may be inaccurate / Outside Ghana"
+                            else -> "Location optional / unavailable"
+                        },
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
+                        color = if (isAvailable && !isPlausible) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface,
                     )
                     if (isAvailable && accuracyMeters != null) {
                         Text(
-                            text = "Accuracy ±${accuracyMeters.toInt()}m",
+                            text = if (isPlausible) "Accuracy ±${accuracyMeters.toInt()}m" else "Tap Refresh to capture fresh coordinates",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (isAvailable && !isPlausible) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -395,6 +412,7 @@ fun GeneralReportScreenPreview() {
     val sampleCategories = listOf(
         IncidentCategory(
             id = "cat_accident",
+            code = "ACCIDENT",
             name = "Road Traffic Accident",
             description = "Vehicle collisions with injuries",
             severity = IncidentSeverity.HIGH,
@@ -402,6 +420,7 @@ fun GeneralReportScreenPreview() {
         ),
         IncidentCategory(
             id = "cat_hazard",
+            code = "HAZARD",
             name = "Public Safety Hazard",
             description = "Flooding, fallen power lines",
             severity = IncidentSeverity.MEDIUM,

@@ -9,6 +9,7 @@ import android.location.LocationManager
 import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.core.location.LocationCompat
 import com.gec.emergency.domain.model.GeoLocation
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -27,6 +28,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 private const val TAG = "AndroidLocationProvider"
+private const val MAX_LOCATION_AGE_MS = 5 * 60 * 1000L // 5 minutes
 
 @Singleton
 class AndroidLocationProvider @Inject constructor(
@@ -63,28 +65,28 @@ class AndroidLocationProvider @Inject constructor(
                 return LocationResult.Success(location.toGeoLocation())
             }
 
-            // Stage 3: Fused Location Client Last Known Location
-            location = getLastKnownFusedLocation()
-            if (location != null) {
-                Log.d(TAG, "Stage 3 (fused lastLocation) obtained location: $location")
-                return LocationResult.Success(location.toGeoLocation())
-            }
-
-            // Stage 4: Single Location Update Callback
+            // Stage 3: Explicit Single Location Update Callback
             location = requestSingleLocationUpdate(timeoutMs = 5000L)
             if (location != null) {
-                Log.d(TAG, "Stage 4 (single update callback) obtained location: $location")
+                Log.d(TAG, "Stage 3 (single update callback) obtained location: $location")
                 return LocationResult.Success(location.toGeoLocation())
             }
 
-            // Stage 5: Direct System LocationManager Fallback (GPS / Network / Passive)
+            // Stage 4: Fused Location Client Last Known Location (must be fresh <= 5 min)
+            location = getLastKnownFusedLocation()
+            if (location != null && isFresh(location)) {
+                Log.d(TAG, "Stage 4 (fresh fused lastLocation) obtained location: $location")
+                return LocationResult.Success(location.toGeoLocation())
+            }
+
+            // Stage 5: Direct System LocationManager Fallback (must be fresh <= 5 min)
             location = getDirectSystemLocation()
-            if (location != null) {
-                Log.d(TAG, "Stage 5 (system LocationManager) obtained location: $location")
+            if (location != null && isFresh(location)) {
+                Log.d(TAG, "Stage 5 (fresh system LocationManager) obtained location: $location")
                 return LocationResult.Success(location.toGeoLocation())
             }
 
-            Log.w(TAG, "All location retrieval stages returned null")
+            Log.w(TAG, "All location retrieval stages returned null or stale locations")
             LocationResult.Unavailable
         } catch (_: SecurityException) {
             Log.e(TAG, "SecurityException while accessing location")
@@ -95,6 +97,11 @@ class AndroidLocationProvider @Inject constructor(
             Log.e(TAG, "Error during location retrieval", e)
             LocationResult.Error(e.localizedMessage)
         }
+    }
+
+    private fun isFresh(location: Location): Boolean {
+        val ageMs = System.currentTimeMillis() - location.time
+        return ageMs in 0..MAX_LOCATION_AGE_MS
     }
 
     @SuppressLint("MissingPermission")
@@ -206,11 +213,16 @@ class AndroidLocationProvider @Inject constructor(
 }
 
 private fun Location.toGeoLocation(): GeoLocation {
+    val isMock = LocationCompat.isMock(this)
+    if (isMock) {
+        Log.d(TAG, "Location source: MOCK/EMULATOR")
+    }
     return GeoLocation(
         latitude = latitude,
         longitude = longitude,
         accuracyMeters = if (hasAccuracy()) accuracy.toDouble() else null,
         timestampMillis = time,
+        isMock = isMock,
     )
 }
 

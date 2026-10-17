@@ -15,6 +15,10 @@ import com.gec.emergency.domain.model.ReportSubmissionResult
 import com.gec.emergency.domain.repository.IncidentReportRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.InputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,21 +30,27 @@ class RemoteIncidentReportRepository @Inject constructor(
     private val fallbackDataSource: DevelopmentIncidentDataSource,
 ) : IncidentReportRepository {
 
-    override suspend fun getCategories(): List<IncidentCategory> {
+    override suspend fun getCategories(mode: String?): List<IncidentCategory> {
         return try {
-            val response = api.getIncidentCategories(null)
+            val response = api.getIncidentCategories(mode)
             if (response.isSuccessful && response.body() != null) {
                 response.body()!!.map { it.toDomainModel() }
+                    .filter { it.isActive && (mode == null || (mode == "SILENT" && it.reportModeSupported.contains(com.gec.emergency.domain.model.ReportMode.SILENT))) }
+                    .sortedWith(compareBy({ it.displayOrder }, { it.name }))
             } else {
-                fallbackDataSource.getCategories()
+                fallbackDataSource.getCategories().filter {
+                    it.isActive && (mode == null || (mode == "SILENT" && it.reportModeSupported.contains(com.gec.emergency.domain.model.ReportMode.SILENT)))
+                }.sortedWith(compareBy({ it.displayOrder }, { it.name }))
             }
         } catch (e: Exception) {
-            fallbackDataSource.getCategories()
+            fallbackDataSource.getCategories().filter {
+                it.isActive && (mode == null || (mode == "SILENT" && it.reportModeSupported.contains(com.gec.emergency.domain.model.ReportMode.SILENT)))
+            }.sortedWith(compareBy({ it.displayOrder }, { it.name }))
         }
     }
 
     override suspend fun getCategoryById(id: String): IncidentCategory? {
-        return getCategories().find { it.id == id }
+        return getCategories(null).find { it.id == id }
     }
 
     override suspend fun submitReport(report: IncidentReport): ReportSubmissionResult {
@@ -54,6 +64,7 @@ class RemoteIncidentReportRepository @Inject constructor(
                 val respDto = response.body()!!
                 val submittedReport = preparedReport.copy(
                     publicReference = respDto.publicReference,
+                    trackingToken = respDto.trackingToken,
                     status = runCatching { ReportStatus.valueOf(respDto.status) }.getOrDefault(ReportStatus.SUBMITTED),
                 )
 
@@ -67,6 +78,28 @@ class RemoteIncidentReportRepository @Inject constructor(
             }
         } catch (e: Exception) {
             ReportSubmissionResult.Failed(e.localizedMessage ?: "Network error. Please check your connection.")
+        }
+    }
+
+    override suspend fun uploadReportAttachment(
+        reportId: String,
+        trackingToken: String,
+        mediaType: String,
+        fileName: String,
+        mimeType: String,
+        inputStream: InputStream,
+        contentLength: Long,
+    ): Boolean {
+        return try {
+            val bytes = inputStream.readBytes()
+            val fileRequestBody = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
+            val filePart = MultipartBody.Part.createFormData("file", fileName, fileRequestBody)
+            val mediaTypeRequestBody = mediaType.toRequestBody("text/plain".toMediaTypeOrNull())
+
+            val response = api.uploadReportAttachment(reportId, trackingToken, mediaTypeRequestBody, filePart)
+            response.isSuccessful
+        } catch (e: Exception) {
+            false
         }
     }
 

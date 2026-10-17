@@ -10,12 +10,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -33,7 +31,6 @@ import com.gec.emergency.ui.theme.GhanaEmergencyConnectTheme
 @Composable
 fun ReportsScreen(
     onBackClick: () -> Unit,
-    onSilentReportClick: () -> Unit = {},
     onGeneralReportClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -64,27 +61,12 @@ fun ReportsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Select Report Mode",
+                    text = "Public Incident Reporting",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(
-                    onClick = onSilentReportClick,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError,
-                    ),
-                    modifier = Modifier.fillMaxWidth(0.9f)
-                ) {
-                    Text(
-                        text = "Silent Emergency Report",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedButton(
                     onClick = onGeneralReportClick,
                     modifier = Modifier.fillMaxWidth(0.9f)
                 ) {
@@ -105,7 +87,6 @@ fun ReportsScreenPreview() {
     GhanaEmergencyConnectTheme {
         ReportsScreen(
             onBackClick = {},
-            onSilentReportClick = {},
             onGeneralReportClick = {},
         )
     }

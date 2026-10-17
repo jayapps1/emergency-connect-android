@@ -34,8 +34,11 @@ fun StationResponseDto.toDomainModel(): Station {
         agencyId = agencyId,
         name = name,
         code = code,
+        stationLevel = stationLevel,
         region = region,
         district = district,
+        regionId = regionId,
+        districtId = districtId,
         locality = locality,
         latitude = latitude,
         longitude = longitude,
@@ -72,6 +75,7 @@ fun IncidentCategoryResponseDto.toDomainModel(): IncidentCategory {
 
     return IncidentCategory(
         id = id,
+        code = code,
         name = name,
         description = description,
         severity = severity,
@@ -79,6 +83,7 @@ fun IncidentCategoryResponseDto.toDomainModel(): IncidentCategory {
         defaultAgencyTypes = mappedAgencies,
         supportsCall = supportsCall,
         isActive = true,
+        displayOrder = displayOrder,
     )
 }
 
@@ -124,5 +129,6 @@ fun IncidentReportResponseDto.toDomainModel(): IncidentReport {
         createdAtMillis = System.currentTimeMillis(),
         severity = runCatching { IncidentSeverity.valueOf(severity) }.getOrDefault(IncidentSeverity.MEDIUM),
         status = runCatching { ReportStatus.valueOf(status) }.getOrDefault(ReportStatus.SUBMITTED),
+        trackingToken = trackingToken,
     )
 }

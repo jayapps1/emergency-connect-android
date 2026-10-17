@@ -64,6 +64,9 @@ fun AppNavigation() {
                 onNearbyStationsClick = {
                     navController.navigate(Routes.NEARBY)
                 },
+                onSilentEmergencyReportClick = {
+                    navController.navigate(Routes.SILENT_REPORT)
+                },
             )
         }
 
@@ -158,9 +161,6 @@ fun AppNavigation() {
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onSilentReportClick = {
-                    navController.navigate(Routes.SILENT_REPORT)
-                },
                 onGeneralReportClick = {
                     navController.navigate(Routes.GENERAL_REPORT)
                 },
@@ -174,6 +174,9 @@ fun AppNavigation() {
                 },
                 onViewReportDetails = { reportId ->
                     navController.navigate(Routes.reportDetails(reportId))
+                },
+                onNavigateToEmergencyCall = {
+                    navController.navigate(Routes.STATIONS)
                 },
             )
         }

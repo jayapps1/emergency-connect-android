@@ -3,6 +3,7 @@ package com.gec.emergency.data.repository
 import com.gec.emergency.data.local.DevelopmentIncidentDataSource
 import com.gec.emergency.domain.model.IncidentCategory
 import com.gec.emergency.domain.model.IncidentReport
+import com.gec.emergency.domain.model.ReportMode
 import com.gec.emergency.domain.model.ReportStatus
 import com.gec.emergency.domain.model.ReportStatusHistory
 import com.gec.emergency.domain.model.ReportSubmissionResult
@@ -10,6 +11,7 @@ import com.gec.emergency.domain.repository.IncidentReportRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
+import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -25,8 +27,15 @@ class DevelopmentIncidentReportRepository @Inject constructor(
     private val reportsMap = MutableStateFlow<Map<String, IncidentReport>>(emptyMap())
     private val statusHistoryMap = MutableStateFlow<Map<String, List<ReportStatusHistory>>>(emptyMap())
 
-    override suspend fun getCategories(): List<IncidentCategory> {
-        return dataSource.getCategories().filter { it.isActive }
+    override suspend fun getCategories(mode: String?): List<IncidentCategory> {
+        val categories = dataSource.getCategories().filter { it.isActive }
+        return if (mode == "SILENT") {
+            categories.filter { ReportMode.SILENT in it.reportModeSupported }
+        } else if (mode == "GENERAL") {
+            categories.filter { ReportMode.GENERAL in it.reportModeSupported }
+        } else {
+            categories
+        }
     }
 
     override suspend fun getCategoryById(id: String): IncidentCategory? {
@@ -64,6 +73,18 @@ class DevelopmentIncidentReportRepository @Inject constructor(
         statusHistoryMap.value = updatedHistory
 
         return ReportSubmissionResult.Success(finalizedReport)
+    }
+
+    override suspend fun uploadReportAttachment(
+        reportId: String,
+        trackingToken: String,
+        mediaType: String,
+        fileName: String,
+        mimeType: String,
+        inputStream: InputStream,
+        contentLength: Long,
+    ): Boolean {
+        return true
     }
 
     override suspend fun getReportById(id: String): IncidentReport? {

@@ -3,6 +3,7 @@ package com.gec.emergency.domain.model
 data class IncidentReport(
     val id: String,
     val publicReference: String? = null,
+    val trackingToken: String? = null,
     val categoryId: String,
     val mode: ReportMode,
     val description: String? = null,

@@ -9,5 +9,6 @@ data class IncidentCategoryResponseDto(
     val supportsSilent: Boolean,
     val supportsGeneral: Boolean,
     val supportsCall: Boolean,
+    val displayOrder: Int = 0,
     val defaultAgencyTypes: Set<String> = emptySet(),
 )
