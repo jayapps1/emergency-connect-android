@@ -24,6 +24,8 @@ fun HomeRoute(
     onReportIncidentClick: () -> Unit,
     onSafetyClick: () -> Unit,
     onSettingsClick: () -> Unit = {},
+    onAccountClick: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -46,6 +48,8 @@ fun HomeRoute(
                 onReportIncidentClick = onReportIncidentClick,
                 onSafetyClick = onSafetyClick,
                 onSettingsClick = onSettingsClick,
+                onAccountClick = onAccountClick,
+                onNotificationsClick = onNotificationsClick,
                 onNationalEmergencyCall = {
                     viewModel.makeNationalEmergencyCall { result ->
                         scope.launch {

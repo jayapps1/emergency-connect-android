@@ -55,7 +55,11 @@ interface EmergencyDirectoryApi {
     suspend fun getIncidentCategories(@Query("mode") mode: String? = null): Response<List<IncidentCategoryResponseDto>>
 
     @POST("api/v1/public/reports")
-    suspend fun submitReport(@Body request: IncidentReportRequestDto): Response<IncidentReportResponseDto>
+    suspend fun submitReport(
+        @Header("X-Installation-ID") installationId: String?,
+        @Header("Authorization") bearerToken: String?,
+        @Body request: IncidentReportRequestDto
+    ): Response<IncidentReportResponseDto>
 
     @Multipart
     @POST("api/v1/public/reports/{reportId}/attachments")
@@ -69,6 +73,72 @@ interface EmergencyDirectoryApi {
     @GET("api/v1/public/reports/track/{publicReference}")
     suspend fun trackReport(
         @Path("publicReference") publicReference: String,
-        @Header("X-Report-Token") trackingToken: String,
+        @Header("X-Report-Token") trackingToken: String?,
     ): Response<TrackedReportResponseDto>
+
+    @POST("api/v1/public/auth/claim-report")
+    suspend fun claimReport(
+        @Header("Authorization") bearerToken: String?,
+        @Body body: Map<String, String>
+    ): Response<TrackedReportResponseDto>
+
+    @POST("api/v1/public/auth/reports/{reportId}/assignments/{assignmentId}/review")
+    suspend fun submitResponseReview(
+        @Header("Authorization") bearerToken: String?,
+        @Path("reportId") reportId: String,
+        @Path("assignmentId") assignmentId: String,
+        @Body body: Map<String, Any?>
+    ): Response<TrackedReportResponseDto>
+
+    @POST("api/v1/public/auth/register/request-otp")
+    suspend fun requestRegisterOtp(@Body body: Map<String, String>): Response<Map<String, String>>
+
+    @POST("api/v1/public/auth/register/verify-otp")
+    suspend fun verifyRegisterOtp(
+        @Header("X-Installation-ID") installationId: String?,
+        @Body body: Map<String, String>
+    ): Response<Map<String, Any>>
+
+    @POST("api/v1/public/auth/login/request-otp")
+    suspend fun requestLoginOtp(@Body body: Map<String, String>): Response<Map<String, String>>
+
+    @POST("api/v1/public/auth/login/request-sms-fallback")
+    suspend fun requestSmsFallbackOtp(@Body body: Map<String, String>): Response<Map<String, String>>
+
+    @POST("api/v1/public/auth/login/verify-otp")
+    suspend fun verifyLoginOtp(
+        @Header("X-Installation-ID") installationId: String?,
+        @Body body: Map<String, String>
+    ): Response<Map<String, Any>>
+
+    @POST("api/v1/public/auth/login/verify-totp")
+    suspend fun verifyPublicTotpLogin(
+        @Header("X-Installation-ID") installationId: String?,
+        @Body body: Map<String, String>
+    ): Response<Map<String, Any>>
+
+    @GET("api/v1/public/auth/me")
+    suspend fun getCurrentPublicUser(@Header("Authorization") bearerToken: String): Response<Map<String, Any>>
+
+    @GET("api/v1/public/auth/my-reports")
+    suspend fun getMyReports(
+        @Header("X-Installation-ID") installationId: String?,
+        @Header("Authorization") bearerToken: String?
+    ): Response<List<TrackedReportResponseDto>>
+
+    @POST("api/v1/public/account/mfa/totp/setup")
+    suspend fun startPublicTotpSetup(
+        @Header("Authorization") bearerToken: String
+    ): Response<Map<String, String>>
+
+    @POST("api/v1/public/account/mfa/totp/confirm")
+    suspend fun confirmPublicTotpSetup(
+        @Header("Authorization") bearerToken: String,
+        @Body body: Map<String, String>
+    ): Response<Map<String, String>>
+
+    @POST("api/v1/public/account/mfa/totp/disable")
+    suspend fun disablePublicTotp(
+        @Header("Authorization") bearerToken: String
+    ): Response<Map<String, String>>
 }

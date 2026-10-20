@@ -22,6 +22,14 @@ import java.io.InputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Remote implementation of {@link IncidentReportRepository} interacting with GEC backend endpoints.
+ *
+ * <p>Identifier Mapping Note:
+ * {@code clientGeneratedRequestId} provides client-side submission idempotency. Upon successful submission,
+ * the domain model {@code id} is updated to the authoritative backend {@code publicReference} string (e.g. RPT-20261019-ABC123)
+ * so report detail lookups and navigation use the public reference key.
+ */
 @Singleton
 class RemoteIncidentReportRepository @Inject constructor(
     private val api: EmergencyDirectoryApi,
@@ -59,17 +67,29 @@ class RemoteIncidentReportRepository @Inject constructor(
             val preparedReport = report.copy(anonymousSessionId = sessionId)
             val requestDto = preparedReport.toRequestDto(clientRequestId = preparedReport.id)
 
-            val response = api.submitReport(requestDto)
+            val installationId = trackingStore.getOrCreateInstallationId()
+            val authToken = trackingStore.getPublicAuthToken()
+            val bearerToken = if (!authToken.isNullOrBlank()) "Bearer $authToken" else null
+
+            val response = api.submitReport(
+                installationId = installationId,
+                bearerToken = bearerToken,
+                request = requestDto,
+            )
+
             if (response.isSuccessful && response.body() != null) {
                 val respDto = response.body()!!
+                val authoritativeRef = respDto.publicReference.ifBlank { preparedReport.id }
+
                 val submittedReport = preparedReport.copy(
-                    publicReference = respDto.publicReference,
+                    id = authoritativeRef,
+                    publicReference = authoritativeRef,
                     trackingToken = respDto.trackingToken,
                     status = runCatching { ReportStatus.valueOf(respDto.status) }.getOrDefault(ReportStatus.SUBMITTED),
                 )
 
-                if (!respDto.trackingToken.isNullOrBlank() && !respDto.publicReference.isBlank()) {
-                    trackingStore.saveTrackingToken(respDto.publicReference, respDto.trackingToken)
+                if (!respDto.trackingToken.isNullOrBlank() && !authoritativeRef.isBlank()) {
+                    trackingStore.saveTrackingToken(authoritativeRef, respDto.trackingToken)
                 }
 
                 ReportSubmissionResult.Success(submittedReport)
@@ -104,17 +124,24 @@ class RemoteIncidentReportRepository @Inject constructor(
     }
 
     override suspend fun getReportById(id: String): IncidentReport? {
-        val trackingToken = trackingStore.getTrackingToken(id) ?: return null
+        val trackingToken = trackingStore.getTrackingToken(id)?.ifBlank { null }
         return try {
             val response = api.trackReport(id, trackingToken)
             if (response.isSuccessful && response.body() != null) {
                 val body = response.body()!!
+                val parsedCreatedAt = runCatching {
+                    if (body.createdAt != null) {
+                        java.time.OffsetDateTime.parse(body.createdAt).toInstant().toEpochMilli()
+                    } else System.currentTimeMillis()
+                }.getOrDefault(System.currentTimeMillis())
+
                 IncidentReport(
-                    id = id,
+                    id = body.publicReference,
                     publicReference = body.publicReference,
                     categoryId = "",
                     mode = com.gec.emergency.domain.model.ReportMode.GENERAL,
                     status = runCatching { ReportStatus.valueOf(body.status) }.getOrDefault(ReportStatus.SUBMITTED),
+                    createdAtMillis = parsedCreatedAt,
                 )
             } else {
                 null
@@ -130,7 +157,7 @@ class RemoteIncidentReportRepository @Inject constructor(
     }
 
     override suspend fun getStatusHistory(reportId: String): List<ReportStatusHistory> {
-        val trackingToken = trackingStore.getTrackingToken(reportId) ?: return emptyList()
+        val trackingToken = trackingStore.getTrackingToken(reportId)?.ifBlank { null }
         return try {
             val response = api.trackReport(reportId, trackingToken)
             if (response.isSuccessful && response.body() != null) {

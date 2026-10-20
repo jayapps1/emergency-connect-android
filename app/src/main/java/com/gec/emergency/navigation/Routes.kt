@@ -17,6 +17,11 @@ object Routes {
     const val STATION_DETAILS_PATTERN = "station_details/{stationId}"
     const val STATION_DETAILS = "station_details"
     const val SETTINGS = "settings"
+    const val ACCOUNT = "account"
+    const val REGISTER = "register"
+    const val OTP_VERIFY = "otp_verify"
+    const val MY_REPORTS = "my_reports"
+    const val NOTIFICATIONS = "notifications"
 
     fun stationsForAgency(agencyId: String) = "stations/$agencyId"
     fun stationDetails(stationId: String) = "station_details/$stationId"

@@ -23,6 +23,15 @@ fun ReportDetailsRoute(
     ReportDetailsScreen(
         uiState = uiState,
         onBackClick = onBackClick,
+        onOpenRatingDialog = { assignment ->
+            viewModel.openRatingDialog(assignment)
+        },
+        onDismissRatingDialog = {
+            viewModel.dismissRatingDialog()
+        },
+        onSubmitReview = { rating, speed, prof, helpful, comment ->
+            viewModel.submitResponseReview(rating, speed, prof, helpful, comment)
+        },
         modifier = modifier,
     )
 }

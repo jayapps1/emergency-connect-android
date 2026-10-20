@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -43,6 +45,8 @@ fun HomeScreen(
     onSafetyClick: () -> Unit,
     onNationalEmergencyCall: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    onAccountClick: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -51,6 +55,18 @@ fun HomeScreen(
             TopAppBar(
                 title = { },
                 actions = {
+                    IconButton(onClick = onNotificationsClick) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Notifications",
+                        )
+                    }
+                    IconButton(onClick = onAccountClick) {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = "Account Profile",
+                        )
+                    }
                     IconButton(onClick = onSettingsClick) {
                         Icon(
                             imageVector = Icons.Default.Settings,
@@ -170,6 +186,8 @@ fun HomeScreenPreview() {
             onSafetyClick = {},
             onNationalEmergencyCall = {},
             onSettingsClick = {},
+            onAccountClick = {},
+            onNotificationsClick = {},
         )
     }
 }
