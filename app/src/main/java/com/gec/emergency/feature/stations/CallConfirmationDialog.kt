@@ -50,6 +50,12 @@ fun CallConfirmationDialog(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Your current location will be captured and shared with Ghana Emergency Connect to coordinate emergency response.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         },
         confirmButton = {

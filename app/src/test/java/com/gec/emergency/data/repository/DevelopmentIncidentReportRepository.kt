@@ -16,12 +16,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class DevelopmentIncidentReportRepository @Inject constructor(
-    private val dataSource: DevelopmentIncidentDataSource,
+/**
+ * TEST FIXTURE ONLY.
+ * In-memory repository for unit testing.
+ */
+class DevelopmentIncidentReportRepository(
+    private val dataSource: DevelopmentIncidentDataSource = DevelopmentIncidentDataSource(),
 ) : IncidentReportRepository {
 
     private val reportsMap = MutableStateFlow<Map<String, IncidentReport>>(emptyMap())

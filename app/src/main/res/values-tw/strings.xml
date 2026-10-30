@@ -1,12 +1,84 @@
 <resources>
     <!-- Twi Localized Resources. Professional agency review required prior to production. -->
     <string name="app_name">Ghana Emergency Connect</string>
+    <string name="home_subtitle">Mmoa sane brɛ a wohia.</string>
     <string name="title_emergency_services">Ntamgyina Dwumadibea</string>
     <string name="title_report_incident">Bɔ Asiane amanneɛ</string>
+    <string name="title_silent_report">Kamm Bɔ Asiane amanneɛ</string>
     <string name="title_safety_info">Bammɔ ho Nsɛm</string>
     <string name="title_nearby_stations">Gyinabea a ɛbɛn</string>
+    <string name="content_desc_back">Sane sekyi</string>
+    <string name="placeholder_emergency_services">Ntamgyina dwuma ho nsɛm bɛda adi ha.</string>
+    <string name="placeholder_report_incident">Asiane bɔ ho nhyehyɛe bɛda adi ha.</string>
+    <string name="placeholder_safety_info">Bammɔ Akwankyerɛ bɛda adi ha.</string>
+    <string name="placeholder_nearby_stations">Gyinabea a ɛbɛn wo bɛda adi ha.</string>
+    <string name="location_permission_explanation">Beae a wewɔ boa ma yehu ntamgyina dwumadibea a ɛbɛn wo.</string>
+    <string name="allow_location_access">Ma kwan ma beae ho nsɛm</string>
+    <string name="continue_without_location">Toa so a beae ho kwan nni mu</string>
+    <string name="location_permission_denied">Wam ma beae ho kwan. Wubumi ahwehwɛ gyinabea nso.</string>
+    <string name="call_confirmation_title">Frɛ %1$s?</string>
     <string name="call_button_label">Frɛ</string>
+    <string name="confirm_call">Toa so</string>
+    <string name="cancel_call">Gyae</string>
+    <string name="error_invalid_phone_number">Foni nɔma no mfomso wɔ mu.</string>
+    <string name="error_calling_unsupported">Foni frɛ nnwuma nyɛ adwuma wɔ foni yi so.</string>
+    <string name="error_call_failed">Ntumi mmue foni frɛ kwan no.</string>
+    <string name="title_select_agency">Paw Ntamgyina Dwumadibea</string>
+    <string name="title_stations">Gyinabea Horow</string>
+    <string name="title_station_details">Gyinabea ho Nsɛm</string>
+    <string name="browse_agencies_button">Hwehwɛ Ntamgyina Dwumadibea Horow</string>
+    <string name="emergency_shortcode_label">Ntamgyina Nɔma Tiatia: %1$s</string>
+    <string name="verified_label">Gyinabea a Wɔahwehwɛ Mu</string>
+    <string name="active_label">Dwumadibea a Ɛyɛ Adwuma</string>
+    <string name="placeholder_no_agencies">Ntamgyina dwumadibea biara nni hɔ.</string>
+    <string name="placeholder_no_stations">Gyinabea biara nni hɔ ma dwumadibea yi.</string>
+    <string name="placeholder_station_not_found">Annhu gyinabea no.</string>
+    <string name="location_section_title">Asase so Beae</string>
+    <string name="latitude_label">Latitude: %1$.4f</string>
+    <string name="longitude_label">Longitude: %1$.4f</string>
+    <string name="accuracy_label">Pɛpɛɛpɛyɛ: ±%1$.0fm</string>
+    <string name="twenty_four_hour_badge">24/7</string>
+    <string name="placeholder_no_contacts">Nkyerɛkyerɛ nɔma biara nni hɔ mprempren ma gyinabea yi.</string>
+    <string name="contact_type_watchroom">Wɔtkyiruum</string>
+    <string name="contact_type_control_room">Kontrool Ruum</string>
+    <string name="contact_type_emergency">Ntamgyina</string>
+    <string name="contact_type_alternative">Siane So</string>
+    <string name="contact_type_administrative">Ɔfese Adwuma</string>
+    <string name="contact_type_other">Foforo</string>
+
+    <string name="status_available">Mfiri wɔ hɔ rekyɛn</string>
+    <string name="status_dispatched">Wɔrekɔ ntamgyina foforo so</string>
+    <string name="status_out_of_commission">Ɛrennyɛ adwuma</string>
+    <string name="status_maintenance">Wɔresiesie mfiri no</string>
+    <string name="status_call_unavailable">Ntumi Mfrɛ</string>
+
+    <string name="distance_meters_away">Ɛbɛn metre %1$d</string>
+    <string name="distance_km_away">Ɛbɛn km %1$.1f</string>
+    <string name="accuracy_good">Ɛyɛ (±%1$d m)</string>
+    <string name="accuracy_moderate">Ɛfata (±%1$d m)</string>
+    <string name="accuracy_low">Ɛnnɔɔso (±%1$d m)</string>
+    <string name="accuracy_low_warning">Beae pɛpɛɛpɛyɛ no nnɔɔso.</string>
+    <string name="refresh_location">Mue Beae Foforo</string>
+    <string name="getting_location">Wɔrehwehwɛ wo beae…</string>
+    <string name="your_location_title">Wo Beae</string>
+    <string name="filter_all_agencies">Dwumadi Nyinaa</string>
+    <string name="search_radius_chip">%1$d km</string>
+    <string name="browse_all_services">Hwehwɛ Ntamgyina Dwumadi Nyinaa</string>
+    <string name="browse_all_stations">Hwehwɛ Gyinabea Nyinaa</string>
+
+    <string name="location_unavailable_title">Yantumi annhu wo beae.</string>
+    <string name="location_unavailable_message">Mpaweɛ sɛ beae dwumadi bue wɔ wo foni so.</string>
+    <string name="no_stations_in_radius">Annhu gyinabea biara wɔ km %1$d mu.</string>
+    <string name="increase_search_radius">Mue Nhwehwɛmu Trɛw</string>
+    <string name="try_again">Sɔ Hwɛ Biom</string>
+
+    <string name="title_offline_directory">Intanɛt Nni Hɔ Nwoma</string>
+    <string name="offline_directory_notice">Intanɛt nni hɔ ntamgyina nɔma horow ma wo.</string>
+    <string name="fast_call_button_label">Frɛ Ntɛm</string>
     <string name="national_emergency_button">Frɛ 112 (Ɔman Nsianebɔ)</string>
+    <string name="fast_call_explanation">Ɛsiw nkra fam na ɛbue foni frɛ kwan no ntɛm ara.</string>
+    <string name="opens_dialer_hint">Ɛbue wo foni so frɛ kwan no.</string>
+
     <string name="title_settings">Nhyehyɛe</string>
     <string name="section_appearance">Asubura</string>
     <string name="section_language">Kasa</string>
@@ -14,4 +86,10 @@
     <string name="theme_system">Sistem Nhyehyɛe</string>
     <string name="theme_light">Hann</string>
     <string name="theme_dark">Sum</string>
+    <string name="label_voice_guidance">Nne Akwankyerɛ</string>
+    <string name="explanation_voice_guidance">Kenkan ntamgyina akwankyerɛ horow dennen.</string>
+    <string name="label_large_text">Nkyerɛwee Kɛse</string>
+    <string name="explanation_large_text">Ma nkyerɛwee kɛse ma akenkan nyɛ mmerɛw.</string>
+    <string name="listen_button">Tie</string>
+    <string name="stop_button">Gyae</string>
 </resources>

@@ -1,9 +1,12 @@
 package com.gec.emergency.feature.nearby
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gec.emergency.core.location.LocationProvider
 import com.gec.emergency.core.location.LocationResult
+import com.gec.emergency.domain.model.Agency
+import com.gec.emergency.domain.model.AgencyType
 import com.gec.emergency.domain.model.GeoLocation
 import com.gec.emergency.domain.model.NearbyStation
 import com.gec.emergency.domain.model.NearbyStationQuery
@@ -19,6 +22,19 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val TAG = "NearbyViewModel"
+
+private val defaultAgencies = listOf(
+    Agency(id = "gnfs", code = "GNFS", name = "Ghana National Fire Service", type = AgencyType.FIRE, isActive = true, isVerified = true),
+    Agency(id = "gps", code = "GPS", name = "Ghana Police Service", type = AgencyType.POLICE, isActive = true, isVerified = true),
+    Agency(id = "nas", code = "NAS", name = "National Ambulance Service", type = AgencyType.AMBULANCE, isActive = true, isVerified = true),
+    Agency(id = "nadmo", code = "NADMO", name = "NADMO", type = AgencyType.DISASTER_MANAGEMENT, isActive = true, isVerified = true),
+)
+
+/**
+ * Nearby ordering uses a fresh permitted device location; stale cached
+ * coordinates are never presented as current location.
+ */
 @HiltViewModel
 class NearbyViewModel @Inject constructor(
     private val locationProvider: LocationProvider,
@@ -27,12 +43,12 @@ class NearbyViewModel @Inject constructor(
     private val getPreferredStationContactUseCase: GetPreferredStationContactUseCase,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(NearbyUiState())
+    private val _uiState = MutableStateFlow(NearbyUiState(agencies = defaultAgencies))
     val uiState: StateFlow<NearbyUiState> = _uiState.asStateFlow()
 
     init {
         loadActiveAgencies()
-        fetchNearbyStations()
+        refreshLocation()
     }
 
     private fun loadActiveAgencies() {
@@ -40,7 +56,9 @@ class NearbyViewModel @Inject constructor(
             getActiveAgenciesUseCase()
                 .catch { /* ignore error */ }
                 .collect { agencies ->
-                    _uiState.value = _uiState.value.copy(agencies = agencies)
+                    if (agencies.isNotEmpty()) {
+                        _uiState.value = _uiState.value.copy(agencies = agencies)
+                    }
                 }
         }
     }
@@ -82,10 +100,16 @@ class NearbyViewModel @Inject constructor(
 
             when (val result = locationProvider.getCurrentLocation()) {
                 is LocationResult.Success -> {
+                    val rawLoc = result.location
+                    val locTime = rawLoc.timestampMillis ?: System.currentTimeMillis()
+                    val ageSec = (System.currentTimeMillis() - locTime) / 1000
+                    val sourceStr = if (rawLoc.isMock) "MOCK/EMULATOR" else "GPS"
+                    Log.d("GEC_LOCATION", "source=$sourceStr lat=${rawLoc.latitude} lon=${rawLoc.longitude} accuracy=${rawLoc.accuracyMeters}m ageSec=${ageSec}s")
+
                     _uiState.value = _uiState.value.copy(
                         isLoadingLocation = false,
-                        currentLocation = result.location,
-                        locationAccuracyMeters = result.location.accuracyMeters,
+                        currentLocation = rawLoc,
+                        locationAccuracyMeters = rawLoc.accuracyMeters,
                         locationAvailable = true,
                         isLocationDisabled = false,
                         errorMessage = null,
@@ -127,7 +151,13 @@ class NearbyViewModel @Inject constructor(
     }
 
     fun fetchNearbyStations() {
-        val location = _uiState.value.currentLocation ?: GeoLocation(0.0, 0.0)
+        val location = _uiState.value.currentLocation
+        if (location == null) {
+            _uiState.value = _uiState.value.copy(
+                nearbyStations = emptyList(),
+            )
+            return
+        }
         viewModelScope.launch {
             val query = NearbyStationQuery(
                 location = location,

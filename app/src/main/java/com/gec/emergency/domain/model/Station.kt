@@ -16,6 +16,12 @@ data class Station(
     val locationAccuracyMeters: Double? = null,
     val isActive: Boolean = true,
     val isVerified: Boolean = true,
+    val isAvailable: Boolean = true,
+    val availableCount: Int = 1,
+    val atEmergencyCount: Int = 0,
+    val outOfCommissionCount: Int = 0,
+    val maintenanceCount: Int = 0,
+    val primaryState: String = "AVAILABLE",
 ) {
     init {
         require(latitude in -90.0..90.0) { "Latitude must be between -90 and 90 degrees" }

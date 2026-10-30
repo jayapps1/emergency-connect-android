@@ -1,9 +1,11 @@
 package com.gec.emergency.feature.reports.details
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gec.emergency.data.local.ReportTrackingStore
 import com.gec.emergency.data.remote.EmergencyDirectoryApi
+import com.gec.emergency.data.remote.dto.SubmitResponseReviewRequestDto
 import com.gec.emergency.data.remote.dto.TrackedReportResponseDto
 import com.gec.emergency.domain.repository.IncidentReportRepository
 import com.gec.emergency.domain.usecase.GetReportByIdUseCase
@@ -77,6 +79,7 @@ class ReportDetailsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             isRatingDialogOpen = true,
             ratingTargetAssignment = assignment,
+            errorMessage = null,
         )
     }
 
@@ -84,6 +87,7 @@ class ReportDetailsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             isRatingDialogOpen = false,
             ratingTargetAssignment = null,
+            errorMessage = null,
         )
     }
 
@@ -94,8 +98,21 @@ class ReportDetailsViewModel @Inject constructor(
         helpfulness: Int?,
         comment: String
     ) {
-        val assignment = _uiState.value.ratingTargetAssignment ?: return
-        val publicRef = _uiState.value.trackedDetail?.publicReference ?: activeReportId ?: return
+        val assignment = _uiState.value.ratingTargetAssignment
+        if (assignment == null) {
+            Log.d("GEC_REVIEW_FLOW", "STEP3_ABORT ratingTargetAssignment is null")
+            _uiState.value = _uiState.value.copy(errorMessage = "Unable to identify review assignment. Please try again.")
+            return
+        }
+
+        val publicRef = _uiState.value.trackedDetail?.publicReference ?: activeReportId
+        if (publicRef.isNullOrBlank()) {
+            Log.d("GEC_REVIEW_FLOW", "STEP3_ABORT publicRef is null or blank")
+            _uiState.value = _uiState.value.copy(errorMessage = "Unable to identify report. Please try again.")
+            return
+        }
+
+        Log.d("GEC_REVIEW_FLOW", "STEP3 viewmodel_submit_started rating=$rating assignmentId=${assignment.assignmentId} publicRef=$publicRef")
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSubmittingReview = true, errorMessage = null)
@@ -103,32 +120,40 @@ class ReportDetailsViewModel @Inject constructor(
                 val token = trackingStore.getPublicAuthToken()
                 val bearer = if (!token.isNullOrBlank()) "Bearer $token" else null
 
-                val body = mutableMapOf<String, Any?>(
-                    "rating" to rating,
-                    "responseSpeedRating" to responseSpeed,
-                    "professionalismRating" to professionalism,
-                    "helpfulnessRating" to helpfulness,
-                    "comment" to comment.ifBlank { null },
+                val requestDto = SubmitResponseReviewRequestDto(
+                    rating = rating,
+                    responseSpeedRating = responseSpeed,
+                    professionalismRating = professionalism,
+                    helpfulnessRating = helpfulness,
+                    comment = comment.ifBlank { null },
                 )
+
+                Log.d("GEC_REVIEW_FLOW", "STEP5 api_request_started reportId=$publicRef assignmentId=${assignment.assignmentId}")
 
                 val response = api.submitResponseReview(
                     bearerToken = bearer,
                     reportId = publicRef,
                     assignmentId = assignment.assignmentId,
-                    body = body,
+                    request = requestDto,
                 )
 
+                Log.d("GEC_REVIEW_FLOW", "STEP6 api_response_status=${response.code()}")
+
                 if (response.isSuccessful && response.body() != null) {
+                    Log.d("GEC_REVIEW_FLOW", "STEP7 review_saved_success")
                     _uiState.value = _uiState.value.copy(
                         isSubmittingReview = false,
                         isRatingDialogOpen = false,
                         ratingTargetAssignment = null,
                         trackedDetail = response.body(),
                     )
+                    loadReport(publicRef)
                 } else {
+                    val errCode = response.code()
+                    Log.d("GEC_REVIEW_FLOW", "STEP6_FAIL code=$errCode")
                     _uiState.value = _uiState.value.copy(
                         isSubmittingReview = false,
-                        errorMessage = when (response.code()) {
+                        errorMessage = when (errCode) {
                             401 -> "Your session has expired. Please sign in again."
                             403 -> "You cannot review this response."
                             409 -> "This response is not yet eligible for review."
@@ -137,6 +162,7 @@ class ReportDetailsViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
+                Log.d("GEC_REVIEW_FLOW", "STEP5_EXCEPTION error=${e.localizedMessage}")
                 _uiState.value = _uiState.value.copy(
                     isSubmittingReview = false,
                     errorMessage = e.localizedMessage ?: "Failed to submit review.",

@@ -1,6 +1,7 @@
 package com.gec.emergency.feature.nearby
 
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -37,11 +39,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -72,6 +76,7 @@ fun NearbyScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    var showLocationSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -87,13 +92,11 @@ fun NearbyScreen(
                     }
                 },
                 actions = {
-                    if (uiState.locationAvailable) {
-                        IconButton(onClick = onRefreshLocationClick) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = stringResource(R.string.refresh_location),
-                            )
-                        }
+                    IconButton(onClick = { showLocationSheet = true }) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Location Management",
+                        )
                     }
                 }
             )
@@ -127,32 +130,53 @@ fun NearbyScreen(
                     LazyColumn(
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        // Location Status Header
-                        if (uiState.locationAvailable) {
-                            item {
-                                LocationStatusCard(
-                                    accuracyMeters = uiState.locationAccuracyMeters,
-                                    onRefreshClick = onRefreshLocationClick,
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                            }
-                        } else {
-                            item {
-                                LocationDisabledBanner(
-                                    onGrantPermissionClick = onGrantPermissionClick,
-                                    onOpenSettingsClick = {
-                                        try {
-                                            context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                                        } catch (_: Exception) {
-                                            onRefreshLocationClick()
-                                        }
+                        // Interactive Location Permission & GPS Banner
+                        item {
+                            when (uiState.permissionState) {
+                                LocationPermissionState.Granted -> {
+                                    if (uiState.isLocationDisabled) {
+                                        LocationServicesOffBanner(
+                                            onOpenSettingsClick = {
+                                                try {
+                                                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                                                } catch (_: Exception) {
+                                                    onRefreshLocationClick()
+                                                }
+                                            }
+                                        )
+                                    } else if (uiState.locationAvailable) {
+                                        LocationStatusCard(
+                                            accuracyMeters = uiState.locationAccuracyMeters,
+                                            isMock = uiState.currentLocation?.isMock == true,
+                                            onCardClick = { showLocationSheet = true },
+                                            onRefreshClick = onRefreshLocationClick,
+                                        )
                                     }
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
+                                }
+                                LocationPermissionState.PermanentlyDenied -> {
+                                    LocationPermanentlyDeniedBanner(
+                                        onOpenSettingsClick = {
+                                            try {
+                                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                    data = Uri.fromParts("package", context.packageName, null)
+                                                }
+                                                context.startActivity(intent)
+                                            } catch (_: Exception) {
+                                                onGrantPermissionClick()
+                                            }
+                                        }
+                                    )
+                                }
+                                else -> {
+                                    LocationPermissionCard(
+                                        onGrantPermissionClick = onGrantPermissionClick,
+                                    )
+                                }
                             }
+                            Spacer(modifier = Modifier.height(12.dp))
                         }
 
-                        // Agency Filter Chips
+                        // Agency Filter Chips (All Services | GNFS | GPS | NAS)
                         item {
                             AgencyFilterRow(
                                 agencies = uiState.agencies,
@@ -162,8 +186,41 @@ fun NearbyScreen(
                             Spacer(modifier = Modifier.height(16.dp))
                         }
 
-                        // Station List
+                        // Station List with Nearest Geographical & Nearest Available Response Cards
                         if (uiState.nearbyStations.isNotEmpty()) {
+                            val nearestGeographical = uiState.nearbyStations.firstOrNull()
+                            val nearestAvailable = uiState.nearbyStations.firstOrNull { it.isAvailable }
+
+                            // If nearest station is unavailable, highlight Nearest Available Response card
+                            if (nearestGeographical != null && !nearestGeographical.isAvailable && nearestAvailable != null) {
+                                item {
+                                    Text(
+                                        text = "Nearest Available Response",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    val preferredContact = uiState.preferredContacts[nearestAvailable.station.id]
+                                    NearbyStationCard(
+                                        nearbyStation = nearestAvailable,
+                                        preferredContact = preferredContact,
+                                        locationAvailable = uiState.locationAvailable,
+                                        formattedDistance = if (uiState.locationAvailable) DistanceFormatter.formatDistance(context, nearestAvailable.distanceKm) else "",
+                                        isHighlightedAvailable = true,
+                                        onClick = { onStationClick(nearestAvailable.station.id) },
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "All Nearby Stations",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+                            }
+
                             items(uiState.nearbyStations, key = { it.station.id }) { nearbyStation ->
                                 val preferredContact = uiState.preferredContacts[nearbyStation.station.id]
                                 NearbyStationCard(
@@ -208,11 +265,82 @@ fun NearbyScreen(
             }
         }
     }
+
+    if (showLocationSheet) {
+        LocationManagementSheet(
+            uiState = uiState,
+            onDismissRequest = { showLocationSheet = false },
+            onRefreshLocationClick = onRefreshLocationClick,
+            onGrantPermissionClick = onGrantPermissionClick,
+        )
+    }
 }
 
 @Composable
-private fun LocationDisabledBanner(
+private fun LocationPermissionCard(
     onGrantPermissionClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Find Nearest Emergency Stations",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Allow location access to calculate real-time distance and recommend the nearest available emergency response unit.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(onClick = onGrantPermissionClick, modifier = Modifier.fillMaxWidth()) {
+                Text("Allow Location Access")
+            }
+        }
+    }
+}
+
+@Composable
+private fun LocationServicesOffBanner(
+    onOpenSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = "Turn On Device Location",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            Text(
+                text = "Device location (GPS) is turned off. Turn on location to calculate accurate station distances.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(onClick = onOpenSettingsClick) {
+                Text("Enable Device Location")
+            }
+        }
+    }
+}
+
+@Composable
+private fun LocationPermanentlyDeniedBanner(
     onOpenSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -222,28 +350,21 @@ private fun LocationDisabledBanner(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
         ),
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Text(
-                text = "GPS Location Unavailable",
+                text = "Location Access Disabled",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
             Text(
-                text = "Showing all emergency stations sorted by region & name. Enable GPS for distance calculation.",
+                text = "Location permission is disabled in system settings. Enable location to use nearby station distance features.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onGrantPermissionClick) {
-                    Text("Grant GPS")
-                }
-                OutlinedButton(onClick = onOpenSettingsClick) {
-                    Text("Settings")
-                }
+            OutlinedButton(onClick = onOpenSettingsClick) {
+                Text("Open App Settings")
             }
         }
     }
@@ -252,14 +373,18 @@ private fun LocationDisabledBanner(
 @Composable
 private fun LocationStatusCard(
     accuracyMeters: Double?,
+    isMock: Boolean,
+    onCardClick: () -> Unit,
     onRefreshClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val accuracyText = DistanceFormatter.formatAccuracy(context, accuracyMeters)
+    val accuracyText = DistanceFormatter.formatAccuracy(context, accuracyMeters) ?: "±5 m"
 
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onCardClick),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
@@ -284,13 +409,12 @@ private fun LocationStatusCard(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    if (accuracyText != null) {
-                        Text(
-                            text = accuracyText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
+                    Text(
+                        text = if (isMock) "Test Location Active ($accuracyText)" else accuracyText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isMock) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    )
                 }
             }
 
@@ -319,7 +443,7 @@ private fun AgencyFilterRow(
             FilterChip(
                 selected = selectedAgencyId == null,
                 onClick = { onAgencySelected(null) },
-                label = { Text(stringResource(R.string.filter_all_agencies)) },
+                label = { Text("All Services") },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.FilterList,
@@ -330,12 +454,19 @@ private fun AgencyFilterRow(
         }
 
         items(agencies, key = { it.id }) { agency ->
+            val labelText = when (agency.type) {
+                com.gec.emergency.domain.model.AgencyType.FIRE -> "GNFS"
+                com.gec.emergency.domain.model.AgencyType.POLICE -> "GPS"
+                com.gec.emergency.domain.model.AgencyType.AMBULANCE -> "NAS"
+                com.gec.emergency.domain.model.AgencyType.DISASTER_MANAGEMENT -> "NADMO"
+                else -> agency.code
+            }
             FilterChip(
                 selected = selectedAgencyId == agency.id,
                 onClick = {
                     if (selectedAgencyId == agency.id) onAgencySelected(null) else onAgencySelected(agency.id)
                 },
-                label = { Text(agency.code) },
+                label = { Text(labelText) },
             )
         }
     }
@@ -348,19 +479,37 @@ private fun NearbyStationCard(
     locationAvailable: Boolean,
     formattedDistance: String,
     onClick: () -> Unit,
+    isHighlightedAvailable: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val station = nearbyStation.station
+    val isAvailable = nearbyStation.isAvailable
+    val cardBg = if (!isAvailable) {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+    } else if (isHighlightedAvailable) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+
+    val unavailableReason = when {
+        station.outOfCommissionCount > 0 -> "Out of Commission"
+        station.atEmergencyCount > 0 -> "Responding at another emergency"
+        station.maintenanceCount > 0 -> "Under Maintenance"
+        else -> "No appliance currently available"
+    }
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isHighlightedAvailable) 4.dp else 2.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
+            // Row 1: Station Name + Verified Badge
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -372,48 +521,69 @@ private fun NearbyStationCard(
                 )
                 if (station.isVerified) {
                     Spacer(modifier = Modifier.width(6.dp))
-                    SuggestionChip(
+                    AssistChip(
                         onClick = onClick,
-                        label = { Text(stringResource(R.string.verified_label)) },
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        ),
+                        label = { Text("Verified") },
+                        colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            // Row 2: Locality & Region
+            Text(
+                text = "${station.locality ?: station.district}, ${station.region}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Row 3: Dedicated Operational Status Row
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "${station.locality ?: station.district}, ${station.region}",
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = "Operational Status: ",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
                 )
-                if (locationAvailable && formattedDistance.isNotBlank()) {
-                    Text(
-                        text = formattedDistance,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
+                if (isAvailable) {
+                    AssistChip(
+                        onClick = onClick,
+                        label = { Text("Appliance Available") },
+                        leadingIcon = {
+                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        },
+                        colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    )
+                } else {
+                    AssistChip(
+                        onClick = onClick,
+                        label = { Text(unavailableReason) },
+                        leadingIcon = {
+                            Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        },
+                        colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Row 4: Distance Label
+            Text(
+                text = if (locationAvailable && formattedDistance.isNotBlank()) "Approx. $formattedDistance away" else "Distance unavailable",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (locationAvailable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (locationAvailable) FontWeight.Bold else FontWeight.Normal,
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider()
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Row 5: Phone Contact & Call Button (Enabled if available, Disabled if unavailable)
             if (preferredContact != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -436,7 +606,7 @@ private fun NearbyStationCard(
                             Spacer(modifier = Modifier.width(6.dp))
                             AssistChip(
                                 onClick = onClick,
-                                label = { Text(stringResource(R.string.twenty_four_hour_badge)) },
+                                label = { Text("24/7") },
                                 colors = AssistChipDefaults.assistChipColors(
                                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                                 ),
@@ -444,8 +614,11 @@ private fun NearbyStationCard(
                         }
                     }
 
-                    Button(onClick = onClick) {
-                        Text(stringResource(R.string.call_button_label))
+                    Button(
+                        onClick = onClick,
+                        enabled = isAvailable,
+                    ) {
+                        Text(if (isAvailable) stringResource(R.string.call_button_label) else "Call Unavailable")
                     }
                 }
             } else {

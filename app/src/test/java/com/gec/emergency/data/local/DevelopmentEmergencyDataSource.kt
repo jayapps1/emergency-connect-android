@@ -5,18 +5,12 @@ import com.gec.emergency.domain.model.AgencyType
 import com.gec.emergency.domain.model.Station
 import com.gec.emergency.domain.model.StationContact
 import com.gec.emergency.domain.model.StationContactType
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
- * DEVELOPMENT ONLY DATA SOURCE.
- *
- * This in-memory source provides temporary sample data for testing Clean Architecture,
- * dependency injection, and UI state flows before remote API / local Room DB integration.
- * Phone numbers are NON-PRODUCTION PLACEHOLDERS.
+ * TEST FIXTURE ONLY.
+ * In-memory emergency data source for unit testing.
  */
-@Singleton
-class DevelopmentEmergencyDataSource @Inject constructor() {
+class DevelopmentEmergencyDataSource {
 
     private val agencies = listOf(
         Agency(
@@ -94,7 +88,6 @@ class DevelopmentEmergencyDataSource @Inject constructor() {
     )
 
     private val contacts = listOf(
-        // GNFS Contacts
         StationContact(
             id = "sc_gnfs_01",
             stationId = "st_gnfs_accra",
@@ -117,7 +110,6 @@ class DevelopmentEmergencyDataSource @Inject constructor() {
             isActive = true,
             isVerified = true,
         ),
-        // GPS Contacts
         StationContact(
             id = "sc_gps_01",
             stationId = "st_gps_accra",
@@ -129,42 +121,12 @@ class DevelopmentEmergencyDataSource @Inject constructor() {
             isActive = true,
             isVerified = true,
         ),
-        StationContact(
-            id = "sc_gps_02",
-            stationId = "st_gps_accra",
-            phoneNumber = "+233-00-000-0004",
-            type = StationContactType.EMERGENCY,
-            priority = 2,
-            isPublic = true,
-            is24Hour = true,
-            isActive = true,
-            isVerified = true,
-        ),
-        // NAS Contacts
-        StationContact(
-            id = "sc_nas_01",
-            stationId = "st_nas_accra",
-            phoneNumber = "+233-00-000-0005",
-            type = StationContactType.CONTROL_ROOM,
-            priority = 1,
-            isPublic = true,
-            is24Hour = true,
-            isActive = true,
-            isVerified = true,
-        ),
     )
 
     fun getAgencies(): List<Agency> = agencies
-
     fun getAgencyById(id: String): Agency? = agencies.find { it.id == id }
-
     fun getStations(): List<Station> = stations
-
-    fun getStationsByAgency(agencyId: String): List<Station> =
-        stations.filter { it.agencyId == agencyId }
-
+    fun getStationsByAgency(agencyId: String): List<Station> = stations.filter { it.agencyId == agencyId }
     fun getStationById(id: String): Station? = stations.find { it.id == id }
-
-    fun getContactsForStation(stationId: String): List<StationContact> =
-        contacts.filter { it.stationId == stationId }.sortedBy { it.priority }
+    fun getContactsForStation(stationId: String): List<StationContact> = contacts.filter { it.stationId == stationId }.sortedBy { it.priority }
 }

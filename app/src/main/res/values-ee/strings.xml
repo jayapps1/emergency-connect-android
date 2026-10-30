@@ -1,14 +1,95 @@
 <resources>
     <!-- Ewe Localized Resources. Professional agency review required prior to production. -->
     <string name="app_name">Ghana Emergency Connect</string>
+    <string name="home_subtitle">Kpodogo kpekpeɖeŋu ne ehiã wò.</string>
     <string name="title_emergency_services">Kpodogo Subɔsubɔwo</string>
     <string name="title_report_incident">Ɖe Afɔku Fia</string>
+    <string name="title_silent_report">Kpodogo Afɔku Fia Zaŋ</string>
     <string name="title_safety_info">Dedienɔnɔ Nyawo</string>
     <string name="title_nearby_stations">Dɔwɔfe siwo te ɖe ŋuwò</string>
+    <string name="content_desc_back">Megbe</string>
+    <string name="placeholder_emergency_services">Kpodogo subɔsubɔ tiatiawo ava afi.</string>
+    <string name="placeholder_report_incident">Afɔku ɖeɖefia tiatiawo ava afi.</string>
+    <string name="placeholder_safety_info">Dedienɔnɔ mɔfiamewo ava afi.</string>
+    <string name="placeholder_nearby_stations">Dɔwɔfe siwo te ɖe ŋuwò ava afi.</string>
+    <string name="location_permission_explanation">Afi si nèle kpena ɖe mía ŋu míanɔ kpodogo dɔwɔfewo siwo te ɖe ŋuwò.</string>
+    <string name="allow_location_access">Ɖe mɔ na afi nɔnɔnya</string>
+    <string name="continue_without_location">Yi edzi mazã afi nɔnɔnya</string>
+    <string name="location_permission_denied">Ègbe mɔɖeɖe na afi nɔnɔnya. Ète ŋu di dɔwɔfeawo ɖokuiwò.</string>
+    <string name="call_confirmation_title">Yɔ %1$s?</string>
     <string name="call_button_label">Yɔ</string>
-    <string name="national_emergency_button">Yɔ 112 (Dukɔa fe Kpodogo)</string>
+    <string name="confirm_call">Yi edzi</string>
+    <string name="cancel_call">Tutu eɖo</string>
+    <string name="error_invalid_phone_number">Ka xɔxlẽa mesɔ o.</string>
+    <string name="error_calling_unsupported">Ka yɔyɔ meyi edzi le mɔfiamenu sia ŋu o.</string>
+    <string name="error_call_failed">Mete ŋu ʋu ka yɔyɔ mɔfiamenu o.</string>
+    <string name="title_select_agency">Tia Kpodogo Dɔwɔfe</string>
+    <string name="title_stations">Dɔwɔfewo</string>
+    <string name="title_station_details">Dɔwɔfe Nyawo</string>
+    <string name="browse_agencies_button">Di Kpodogo Dɔwɔfewo</string>
+    <string name="emergency_shortcode_label">Kpodogo Kaxɔxlẽ Kpuie: %1$s</string>
+    <string name="verified_label">Dɔwɔfe si wotso nya le</string>
+    <string name="active_label">Dɔwɔfe si le dɔ wɔm</string>
+    <string name="placeholder_no_agencies">Kpodogo dɔwɔfe aɖeke meli o.</string>
+    <string name="placeholder_no_stations">Dɔwɔfe aɖeke meli na dɔwɔfe sia o.</string>
+    <string name="placeholder_station_not_found">Mewɔ dɔwɔfea o.</string>
+    <string name="location_section_title">Afi si wòle le anyigba ŋu</string>
+    <string name="latitude_label">Latitude: %1$.4f</string>
+    <string name="longitude_label">Longitude: %1$.4f</string>
+    <string name="accuracy_label">Pɛpɛɛpɛ: ±%1$.0fm</string>
+    <string name="twenty_four_hour_badge">24/7</string>
+    <string name="placeholder_no_contacts">Dukɔa fiavɔ ka xɔxlẽ aɖeke meli na dɔwɔfe sia firifi o.</string>
+    <string name="contact_type_watchroom">Watchroom</string>
+    <string name="contact_type_control_room">Control Room</string>
+    <string name="contact_type_emergency">Kpodogo</string>
+    <string name="contact_type_alternative">Mɔ Bu</string>
+    <string name="contact_type_administrative">Dɔwɔnya</string>
+    <string name="contact_type_other">Bubuwo</string>
+
+    <string name="status_available">Mɔfiamenu le hɔ</string>
+    <string name="status_dispatched">Le kpodogo bubu gbɔ kpɔm</string>
+    <string name="status_out_of_commission">Melé dɔ wɔm o</string>
+    <string name="status_maintenance">Le dzadzraɖo mli</string>
+    <string name="status_call_unavailable">Mete ŋu Yɔ o</string>
+
+    <string name="distance_meters_away">Te ɖe ŋu mita %1$d</string>
+    <string name="distance_km_away">Te ɖe ŋu km %1$.1f</string>
+    <string name="accuracy_good">Enyo (±%1$d m)</string>
+    <string name="accuracy_moderate">Esɔ (±%1$d m)</string>
+    <string name="accuracy_low">Mebɔ o (±%1$d m)</string>
+    <string name="accuracy_low_warning">Afi nɔnɔnya pɛpɛɛpɛ mebɔ o.</string>
+    <string name="refresh_location">Yɔ Afi Yeye</string>
+    <string name="getting_location">Le wò afi si nèle dim…</string>
+    <string name="your_location_title">Wò Afi Nɔnɔnya</string>
+    <string name="filter_all_agencies">Subɔsubɔwo Katã</string>
+    <string name="search_radius_chip">%1$d km</string>
+    <string name="browse_all_services">Di Kpodogo Subɔsubɔwo Katã</string>
+    <string name="browse_all_stations">Di Dɔwɔfewo Katã</string>
+
+    <string name="location_unavailable_title">Mía mete ŋu kpɔ wò afi o.</string>
+    <string name="location_unavailable_message">Ofainɛ kpɔ eɖe be afi nɔnɔnya subɔsubɔwo le dɔ wɔm le wò ka ŋu.</string>
+    <string name="no_stations_in_radius">Mekpɔ dɔwɔfe aɖeke le km %1$d mli o.</string>
+    <string name="increase_search_radius">Kekee Didia Mli</string>
+    <string name="try_again">Te kpɔ gbede</string>
+
+    <string name="title_offline_directory">Intanɛt Manɔŋu Wolo</string>
+    <string name="offline_directory_notice">Intanɛt manɔŋu kpodogo kaxɔxlẽwo na wò.</string>
+    <string name="fast_call_button_label">Yɔ Kabakaba</string>
+    <string name="national_emergency_button">Yɔ 112 (Dukɔa Kpodogo)</string>
+    <string name="fast_call_explanation">Etsia kpeɖeŋunya dzi helãa ka yɔyɔ mɔfiamenu kabakaba.</string>
+    <string name="opens_dialer_hint">Eʋua wò ka yɔyɔ mɔfiamenu.</string>
+
     <string name="title_settings">Ɖoɖowo</string>
     <string name="section_appearance">Dzedzeme</string>
     <string name="section_language">Gbe</string>
-    <string name="section_accessibility">Mɔnuwo</string>
+    <string name="section_accessibility">Kpekpeɖeŋu Subɔsubɔ</string>
+    <string name="theme_system">Sistem Ɖoɖo</string>
+    <string name="theme_light">Kekeli</string>
+    <string name="theme_dark">Viviti</string>
+    <string name="label_voice_guidance">Gbe Mɔfiame</string>
+    <string name="explanation_voice_guidance">Xlẽ kpodogo mɔfiame veviwo sesĩe.</string>
+    <string name="label_large_text">Nuŋɔŋlɔ Gã</string>
+    <string name="explanation_large_text">Ɖo nuŋɔŋlɔ gã be xexlẽ nanɔ bɔbɔe.</string>
+    <string name="listen_button">Se</string>
+    <string name="stop_button">Tɔ</string>
 </resources>

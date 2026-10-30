@@ -1,7 +1,9 @@
 package com.gec.emergency.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gec.emergency.core.util.LocaleHelper
 import com.gec.emergency.domain.model.AppLanguage
 import com.gec.emergency.domain.model.AppThemeMode
 import com.gec.emergency.domain.usecase.ObserveAppLanguageUseCase
@@ -13,6 +15,7 @@ import com.gec.emergency.domain.usecase.SetLargeTextUseCase
 import com.gec.emergency.domain.usecase.SetThemeModeUseCase
 import com.gec.emergency.domain.usecase.SetVoiceGuidanceUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +25,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val observeThemeModeUseCase: ObserveThemeModeUseCase,
     private val setThemeModeUseCase: SetThemeModeUseCase,
     private val observeAppLanguageUseCase: ObserveAppLanguageUseCase,
@@ -68,6 +72,7 @@ class SettingsViewModel @Inject constructor(
     fun setLanguage(language: AppLanguage) {
         viewModelScope.launch {
             setAppLanguageUseCase(language)
+            LocaleHelper.updateLocale(context, language)
         }
     }
 

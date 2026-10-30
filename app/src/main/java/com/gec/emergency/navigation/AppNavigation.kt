@@ -2,20 +2,24 @@ package com.gec.emergency.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.gec.emergency.domain.model.SafetyInformation
 import com.gec.emergency.feature.account.AccountScreen
 import com.gec.emergency.feature.account.AccountViewModel
 import com.gec.emergency.feature.account.MyReportsScreen
 import com.gec.emergency.feature.auth.OtpVerifyScreen
 import com.gec.emergency.feature.auth.RegisterScreen
-import com.gec.emergency.feature.emergency.EmergencyScreen
-import com.gec.emergency.feature.emergency.OfflineEmergencyDirectoryRoute
 import com.gec.emergency.feature.home.HomeRoute
 import com.gec.emergency.feature.nearby.NearbyRoute
 import com.gec.emergency.feature.notification.NotificationsScreen
@@ -24,27 +28,39 @@ import com.gec.emergency.feature.reports.ReportsScreen
 import com.gec.emergency.feature.reports.details.ReportDetailsRoute
 import com.gec.emergency.feature.reports.general.GeneralReportRoute
 import com.gec.emergency.feature.reports.silent.SilentReportRoute
-import com.gec.emergency.feature.safety.SafetyScreen
+import com.gec.emergency.feature.safety.SafetyDetailScreen
+import com.gec.emergency.feature.safety.SafetyInformationScreen
+import com.gec.emergency.feature.safety.SafetyViewModel
 import com.gec.emergency.feature.settings.SettingsRoute
-import com.gec.emergency.feature.stations.AgencySelectorRoute
 import com.gec.emergency.feature.stations.StationDetailsRoute
 import com.gec.emergency.feature.stations.StationsRoute
 
+/**
+ * Coordinates public-account navigation independently from staff
+ * authentication. Registration, sign-in, and incident-history destinations
+ * remain scoped to the citizen application.
+ */
 @Composable
-fun AppNavigation() {
-    val navController = rememberNavController()
-
+fun AppNavigation(
+    navController: NavHostController = rememberNavController(),
+    modifier: Modifier = Modifier,
+    startDestination: String = Routes.HOME,
+) {
     NavHost(
         navController = navController,
-        startDestination = Routes.HOME,
+        startDestination = startDestination,
+        modifier = modifier,
     ) {
         composable(Routes.HOME) {
             HomeRoute(
                 onEmergencyServicesClick = {
-                    navController.navigate(Routes.EMERGENCY)
+                    navController.navigate(Routes.NEARBY)
                 },
                 onReportIncidentClick = {
                     navController.navigate(Routes.REPORTS)
+                },
+                onSilentReportClick = {
+                    navController.navigate(Routes.SILENT_REPORT)
                 },
                 onSafetyClick = {
                     navController.navigate(Routes.SAFETY)
@@ -53,207 +69,14 @@ fun AppNavigation() {
                     navController.navigate(Routes.SETTINGS)
                 },
                 onAccountClick = {
-                    navController.navigate(Routes.ACCOUNT)
-                },
-                onNotificationsClick = {
-                    navController.navigate(Routes.NOTIFICATIONS)
-                },
-            )
-        }
-
-        composable(Routes.NOTIFICATIONS) {
-            val notificationsViewModel: NotificationsViewModel = hiltViewModel()
-            val uiState by notificationsViewModel.uiState.collectAsStateWithLifecycle()
-
-            NotificationsScreen(
-                uiState = uiState,
-                onBackClick = {
-                    navController.popBackStack()
-                },
-                onNotificationClick = { reportId ->
-                    if (!reportId.isNullOrBlank()) {
-                        navController.navigate(Routes.reportDetails(reportId))
+                    navController.navigate(Routes.ACCOUNT) {
+                        launchSingleTop = true
                     }
                 },
-            )
-        }
-
-        composable(Routes.ACCOUNT) {
-            val accountViewModel: AccountViewModel = hiltViewModel()
-            val uiState by accountViewModel.uiState.collectAsStateWithLifecycle()
-
-            AccountScreen(
-                uiState = uiState,
-                onBackClick = {
-                    navController.popBackStack()
-                },
-                onRegisterClick = {
-                    accountViewModel.resetState()
-                    navController.navigate(Routes.REGISTER)
-                },
-                onLoginClick = {
-                    accountViewModel.resetState()
-                    navController.navigate(Routes.REGISTER)
-                },
-                onMyReportsClick = {
-                    navController.navigate(Routes.MY_REPORTS)
-                },
-                onSignOutClick = {
-                    accountViewModel.signOut()
-                },
-                onClaimReportSubmit = { ref, token ->
-                    accountViewModel.claimReport(ref, token)
-                },
-                onStartTotpSetup = {
-                    accountViewModel.startTotpSetup()
-                },
-                onConfirmTotpSetup = { code ->
-                    accountViewModel.confirmTotpSetup(code)
-                },
-                onDisableTotp = {
-                    accountViewModel.disableTotp()
-                },
-                onDismissTotpDialog = {
-                    accountViewModel.dismissTotpSetupDialog()
-                },
-            )
-        }
-
-        composable(Routes.REGISTER) {
-            val accountViewModel: AccountViewModel = hiltViewModel()
-            val uiState by accountViewModel.uiState.collectAsStateWithLifecycle()
-
-            if (uiState.otpVerified) {
-                navController.popBackStack(Routes.HOME, false)
-            } else if (uiState.otpRequested) {
-                OtpVerifyScreen(
-                    uiState = uiState,
-                    phoneNumber = uiState.phoneNumber ?: "",
-                    onBackClick = {
-                        accountViewModel.resetState()
-                    },
-                    onVerifyOtp = { code ->
-                        accountViewModel.verifyRegisterOtp(uiState.phoneNumber ?: "", code)
-                    },
-                    onResendOtp = {
-                        accountViewModel.requestRegisterOtp(uiState.phoneNumber ?: "")
-                    },
-                    onRequestSmsFallback = {
-                        accountViewModel.requestSmsFallbackOtp(uiState.phoneNumber ?: "")
-                    },
-                )
-            } else {
-                RegisterScreen(
-                    uiState = uiState,
-                    onPhoneNumberChanged = { input ->
-                        accountViewModel.onPhoneNumberInputChanged(input)
-                    },
-                    onBackClick = {
-                        navController.popBackStack()
-                    },
-                    onRequestOtp = { phone ->
-                        accountViewModel.requestRegisterOtp(phone)
-                    },
-                    onContinueAsGuest = {
-                        navController.popBackStack()
-                    },
-                )
-            }
-        }
-
-        composable(Routes.MY_REPORTS) {
-            val accountViewModel: AccountViewModel = hiltViewModel()
-            val uiState by accountViewModel.uiState.collectAsStateWithLifecycle()
-
-            MyReportsScreen(
-                uiState = uiState,
-                onBackClick = {
-                    navController.popBackStack()
-                },
-                onReportClick = { publicRef ->
-                    navController.navigate(Routes.reportDetails(publicRef))
-                },
-            )
-        }
-
-        composable(Routes.SETTINGS) {
-            SettingsRoute(
-                onBackClick = {
-                    navController.popBackStack()
-                },
-            )
-        }
-
-        composable(Routes.EMERGENCY) {
-            EmergencyScreen(
-                onBackClick = {
-                    navController.popBackStack()
-                },
-                onBrowseAgenciesClick = {
-                    navController.navigate(Routes.AGENCIES)
-                },
-                onNearbyStationsClick = {
-                    navController.navigate(Routes.NEARBY)
-                },
-                onSilentEmergencyReportClick = {
-                    navController.navigate(Routes.SILENT_REPORT)
-                },
-            )
-        }
-
-        composable(Routes.AGENCIES) {
-            AgencySelectorRoute(
-                onBackClick = {
-                    navController.popBackStack()
-                },
-                onAgencySelected = { agencyId ->
-                    navController.navigate(Routes.stationsForAgency(agencyId))
-                },
-                onOfflineDirectoryClick = {
-                    navController.navigate(Routes.OFFLINE_DIRECTORY)
-                },
-            )
-        }
-
-        composable(Routes.OFFLINE_DIRECTORY) {
-            OfflineEmergencyDirectoryRoute(
-                onBackClick = {
-                    navController.popBackStack()
-                },
-            )
-        }
-
-        composable(
-            route = Routes.STATIONS_PATTERN,
-            arguments = listOf(
-                navArgument("agencyId") { type = NavType.StringType }
-            ),
-        ) { backStackEntry ->
-            val agencyId = backStackEntry.arguments?.getString("agencyId")
-            StationsRoute(
-                agencyId = agencyId,
-                onBackClick = {
-                    navController.popBackStack()
-                },
-                onStationClick = { stationId ->
-                    navController.navigate(Routes.stationDetails(stationId))
-                },
-                onOfflineDirectoryClick = {
-                    navController.navigate(Routes.OFFLINE_DIRECTORY)
-                },
-            )
-        }
-
-        composable(Routes.STATIONS) {
-            StationsRoute(
-                onBackClick = {
-                    navController.popBackStack()
-                },
-                onStationClick = { stationId ->
-                    navController.navigate(Routes.stationDetails(stationId))
-                },
-                onOfflineDirectoryClick = {
-                    navController.navigate(Routes.OFFLINE_DIRECTORY)
+                onNotificationsClick = {
+                    navController.navigate(Routes.NOTIFICATIONS) {
+                        launchSingleTop = true
+                    }
                 },
             )
         }
@@ -264,7 +87,18 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
                 onBrowseAllServicesClick = {
-                    navController.navigate(Routes.OFFLINE_DIRECTORY)
+                    navController.navigate(Routes.STATIONS)
+                },
+                onStationClick = { stationId ->
+                    navController.navigate(Routes.stationDetails(stationId))
+                },
+            )
+        }
+
+        composable(Routes.STATIONS) {
+            StationsRoute(
+                onBackClick = {
+                    navController.popBackStack()
                 },
                 onStationClick = { stationId ->
                     navController.navigate(Routes.stationDetails(stationId))
@@ -287,6 +121,132 @@ fun AppNavigation() {
             )
         }
 
+        composable(Routes.SETTINGS) {
+            SettingsRoute(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+            )
+        }
+
+        composable(Routes.ACCOUNT) {
+            val viewModel: AccountViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+            AccountScreen(
+                uiState = uiState,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onRegisterClick = {
+                    navController.navigate(Routes.REGISTER)
+                },
+                onLoginClick = {
+                    navController.navigate(Routes.REGISTER)
+                },
+                onMyReportsClick = {
+                    navController.navigate(Routes.MY_REPORTS)
+                },
+                onSignOutClick = {
+                    viewModel.signOut()
+                },
+                onClaimReportSubmit = { ref, token ->
+                    viewModel.claimReport(ref, token)
+                },
+                onStartTotpSetup = {
+                    viewModel.startTotpSetup()
+                },
+                onConfirmTotpSetup = { code ->
+                    viewModel.confirmTotpSetup(code)
+                },
+                onDisableTotp = {
+                    viewModel.disableTotp()
+                },
+                onDismissTotpDialog = {
+                    viewModel.dismissTotpSetupDialog()
+                },
+            )
+        }
+
+        composable(Routes.REGISTER) {
+            val viewModel: AccountViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+            RegisterScreen(
+                uiState = uiState,
+                onPhoneNumberChanged = { phone ->
+                    viewModel.onPhoneNumberInputChanged(phone)
+                },
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onRequestOtp = { phone ->
+                    viewModel.requestRegisterOtp(phone)
+                    navController.navigate(Routes.OTP_VERIFY)
+                },
+                onContinueAsGuest = {
+                    navController.popBackStack()
+                },
+            )
+        }
+
+        composable(Routes.OTP_VERIFY) {
+            val viewModel: AccountViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+            OtpVerifyScreen(
+                uiState = uiState,
+                phoneNumber = uiState.phoneNumberInput,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onVerifyOtp = { code ->
+                    viewModel.verifyRegisterOtp(uiState.phoneNumberInput, code)
+                    navController.popBackStack(Routes.ACCOUNT, false)
+                },
+                onResendOtp = {
+                    viewModel.requestRegisterOtp(uiState.phoneNumberInput)
+                },
+                onRequestSmsFallback = {
+                    viewModel.requestSmsFallbackOtp(uiState.phoneNumberInput)
+                },
+            )
+        }
+
+        composable(Routes.MY_REPORTS) {
+            val viewModel: AccountViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+            MyReportsScreen(
+                uiState = uiState,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onReportClick = { reportId ->
+                    navController.navigate(Routes.reportDetails(reportId))
+                },
+            )
+        }
+
+        composable(Routes.SAFETY) {
+            val viewModel: SafetyViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            var selectedPostForDetail by remember { mutableStateOf<SafetyInformation?>(null) }
+
+            if (selectedPostForDetail != null) {
+                SafetyDetailScreen(
+                    post = selectedPostForDetail!!,
+                    onBackClick = { selectedPostForDetail = null },
+                )
+            } else {
+                SafetyInformationScreen(
+                    safetyPosts = uiState.safetyPosts,
+                    onBackClick = { navController.popBackStack() },
+                    onPostClick = { post -> selectedPostForDetail = post },
+                )
+            }
+        }
+
         composable(Routes.REPORTS) {
             ReportsScreen(
                 onBackClick = {
@@ -294,6 +254,17 @@ fun AppNavigation() {
                 },
                 onGeneralReportClick = {
                     navController.navigate(Routes.GENERAL_REPORT)
+                },
+            )
+        }
+
+        composable(Routes.GENERAL_REPORT) {
+            GeneralReportRoute(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onViewReportDetails = { reportId ->
+                    navController.navigate(Routes.reportDetails(reportId))
                 },
             )
         }
@@ -307,18 +278,7 @@ fun AppNavigation() {
                     navController.navigate(Routes.reportDetails(reportId))
                 },
                 onNavigateToEmergencyCall = {
-                    navController.navigate(Routes.STATIONS)
-                },
-            )
-        }
-
-        composable(Routes.GENERAL_REPORT) {
-            GeneralReportRoute(
-                onBackClick = {
-                    navController.popBackStack()
-                },
-                onViewReportDetails = { reportId ->
-                    navController.navigate(Routes.reportDetails(reportId))
+                    navController.navigate(Routes.HOME)
                 },
             )
         }
@@ -338,10 +298,19 @@ fun AppNavigation() {
             )
         }
 
-        composable(Routes.SAFETY) {
-            SafetyScreen(
+        composable(Routes.NOTIFICATIONS) {
+            val viewModel: NotificationsViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+            NotificationsScreen(
+                uiState = uiState,
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onNotificationClick = { reportId ->
+                    if (!reportId.isNullOrBlank()) {
+                        navController.navigate(Routes.reportDetails(reportId))
+                    }
                 },
             )
         }

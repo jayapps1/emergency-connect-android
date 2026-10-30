@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -98,6 +99,49 @@ fun StationDetailsScreen(
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState())
                     ) {
+                        // Unavailable Station Warning Banner
+                        if (!station.isAvailable) {
+                            val unavailableReason = when {
+                                station.outOfCommissionCount > 0 -> "Out of Commission"
+                                station.atEmergencyCount > 0 -> "Responding at another emergency"
+                                station.maintenanceCount > 0 -> "Under Maintenance"
+                                else -> "No appliance currently available"
+                            }
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                ),
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            text = unavailableReason,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onErrorContainer,
+                                        )
+                                        Text(
+                                            text = "No response appliance is currently available at this station. Emergency calling is disabled for this station.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onErrorContainer,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         // Station Info Card
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -215,8 +259,9 @@ fun StationDetailsScreen(
                                     Spacer(modifier = Modifier.height(8.dp))
                                     ContactDetailRow(
                                         contact = primaryContact,
-                                        onCallClick = { onInitiateCall(station, primaryContact) },
-                                        onFastCallClick = { onFastCall(station, primaryContact) },
+                                        isAvailable = station.isAvailable,
+                                        onCallClick = { if (station.isAvailable) onInitiateCall(station, primaryContact) },
+                                        onFastCallClick = { if (station.isAvailable) onFastCall(station, primaryContact) },
                                     )
 
                                     if (otherContacts.isNotEmpty()) {
@@ -237,8 +282,9 @@ fun StationDetailsScreen(
                                             }
                                             ContactDetailRow(
                                                 contact = contact,
-                                                onCallClick = { onInitiateCall(station, contact) },
-                                                onFastCallClick = { onFastCall(station, contact) },
+                                                isAvailable = station.isAvailable,
+                                                onCallClick = { if (station.isAvailable) onInitiateCall(station, contact) },
+                                                onFastCallClick = { if (station.isAvailable) onFastCall(station, contact) },
                                             )
                                         }
                                     }
@@ -294,6 +340,7 @@ fun StationDetailsScreen(
 @Composable
 private fun ContactDetailRow(
     contact: StationContact,
+    isAvailable: Boolean,
     onCallClick: () -> Unit,
     onFastCallClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -347,19 +394,21 @@ private fun ContactDetailRow(
         ) {
             OutlinedButton(
                 onClick = onCallClick,
+                enabled = isAvailable,
             ) {
                 Icon(
                     imageVector = Icons.Default.Phone,
                     contentDescription = null,
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(stringResource(R.string.call_button_label))
+                Text(if (isAvailable) stringResource(R.string.call_button_label) else "Call Unavailable")
             }
 
             Spacer(modifier = Modifier.width(8.dp))
 
             Button(
                 onClick = onFastCallClick,
+                enabled = isAvailable,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.secondary,
                 ),
@@ -369,7 +418,7 @@ private fun ContactDetailRow(
                     contentDescription = null,
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(stringResource(R.string.fast_call_button_label))
+                Text(if (isAvailable) stringResource(R.string.fast_call_button_label) else "Call Unavailable")
             }
         }
     }

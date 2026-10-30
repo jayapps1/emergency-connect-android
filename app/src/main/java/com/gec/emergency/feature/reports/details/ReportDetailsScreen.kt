@@ -1,5 +1,6 @@
 package com.gec.emergency.feature.reports.details
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -342,17 +343,26 @@ fun ReportDetailsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 4,
                     )
+
+                    if (uiState.errorMessage != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = uiState.errorMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
+                        Log.d("GEC_REVIEW_FLOW", "STEP1 button_clicked rating=$ratingValue commentLength=${reviewComment.length}")
                         onSubmitReview(ratingValue, ratingValue, ratingValue, ratingValue, reviewComment)
-                        reviewComment = ""
                     },
-                    enabled = !uiState.isSubmittingReview,
+                    enabled = !uiState.isSubmittingReview && ratingValue in 1..5,
                 ) {
-                    Text("Submit Review")
+                    Text(if (uiState.isSubmittingReview) "Submitting..." else "Submit Review")
                 }
             },
             dismissButton = {
@@ -361,6 +371,16 @@ fun ReportDetailsScreen(
                 }
             },
         )
+    }
+}
+
+private fun formatAgencyType(type: AgencyType): String {
+    return when (type) {
+        AgencyType.FIRE -> "Ghana National Fire Service"
+        AgencyType.POLICE -> "Ghana Police Service"
+        AgencyType.AMBULANCE -> "National Ambulance Service"
+        AgencyType.DISASTER_MANAGEMENT -> "NADMO"
+        AgencyType.OTHER -> "Emergency Response Agency"
     }
 }
 

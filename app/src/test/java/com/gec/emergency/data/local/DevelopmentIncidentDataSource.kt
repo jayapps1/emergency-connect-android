@@ -4,17 +4,12 @@ import com.gec.emergency.domain.model.AgencyType
 import com.gec.emergency.domain.model.IncidentCategory
 import com.gec.emergency.domain.model.IncidentSeverity
 import com.gec.emergency.domain.model.ReportMode
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
- * DEVELOPMENT INCIDENT DATA SOURCE.
- *
- * Temporary in-memory source providing sample incident categories and development reports.
- * NOT FOR PRODUCTION DISPATCH.
+ * TEST FIXTURE ONLY.
+ * In-memory category fixture for unit tests.
  */
-@Singleton
-class DevelopmentIncidentDataSource @Inject constructor() {
+class DevelopmentIncidentDataSource {
 
     private val categories = listOf(
         IncidentCategory(

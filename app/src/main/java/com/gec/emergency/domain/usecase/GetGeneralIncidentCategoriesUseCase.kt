@@ -9,6 +9,6 @@ class GetGeneralIncidentCategoriesUseCase @Inject constructor(
     private val repository: IncidentReportRepository,
 ) {
     suspend operator fun invoke(): List<IncidentCategory> {
-        return repository.getCategories().filter { ReportMode.GENERAL in it.reportModeSupported }
+        return repository.getCategories("GENERAL").filter { ReportMode.GENERAL in it.reportModeSupported }
     }
 }

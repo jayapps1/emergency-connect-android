@@ -1,13 +1,17 @@
 package com.gec.emergency.data.remote
 
 import com.gec.emergency.data.remote.dto.AgencyResponseDto
+import com.gec.emergency.data.remote.dto.CreateEmergencyCallAttemptRequestDto
+import com.gec.emergency.data.remote.dto.EmergencyCallAttemptResponseDto
 import com.gec.emergency.data.remote.dto.IncidentCategoryResponseDto
 import com.gec.emergency.data.remote.dto.IncidentReportRequestDto
 import com.gec.emergency.data.remote.dto.IncidentReportResponseDto
 import com.gec.emergency.data.remote.dto.RegionRefResponseDto
+import com.gec.emergency.data.remote.dto.SafetyInformationResponseDto
 import com.gec.emergency.data.remote.dto.StationContactResponseDto
 import com.gec.emergency.data.remote.dto.StationDetailsResponseDto
 import com.gec.emergency.data.remote.dto.StationResponseDto
+import com.gec.emergency.data.remote.dto.SubmitResponseReviewRequestDto
 import com.gec.emergency.data.remote.dto.TrackedReportResponseDto
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -17,6 +21,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
@@ -29,6 +34,9 @@ interface EmergencyDirectoryApi {
 
     @GET("api/v1/public/agencies/{agencyId}")
     suspend fun getAgency(@Path("agencyId") agencyId: String): Response<AgencyResponseDto>
+
+    @GET("api/v1/public/stations")
+    suspend fun getAllPublicStations(): Response<List<StationResponseDto>>
 
     @GET("api/v1/public/agencies/{agencyId}/stations")
     suspend fun getStationsByAgency(@Path("agencyId") agencyId: String): Response<List<StationResponseDto>>
@@ -53,6 +61,33 @@ interface EmergencyDirectoryApi {
 
     @GET("api/v1/public/incident-categories")
     suspend fun getIncidentCategories(@Query("mode") mode: String? = null): Response<List<IncidentCategoryResponseDto>>
+
+    @GET("api/v1/public/safety-information")
+    suspend fun getPublicSafetyInformation(
+        @Query("category") category: String? = null,
+        @Query("severity") severity: String? = null
+    ): Response<List<SafetyInformationResponseDto>>
+
+    @GET("api/v1/public/safety-information/{id}")
+    suspend fun getPublicSafetyInformationById(@Path("id") id: String): Response<SafetyInformationResponseDto>
+
+    @GET("api/v1/public/account/notifications/unread-count")
+    suspend fun getUnreadNotificationCount(): Response<Map<String, Long>>
+
+    @POST("api/v1/public/account/notifications/{id}/read")
+    suspend fun markNotificationAsRead(@Path("id") id: String): Response<Void>
+
+    @POST("api/v1/public/emergency-call-attempts")
+    suspend fun createEmergencyCallAttempt(
+        @Header("X-Installation-ID") installationId: String?,
+        @Header("Authorization") bearerToken: String?,
+        @Body request: CreateEmergencyCallAttemptRequestDto
+    ): Response<EmergencyCallAttemptResponseDto>
+
+    @PATCH("api/v1/public/emergency-call-attempts/{id}/launched")
+    suspend fun markCallLaunched(
+        @Path("id") callAttemptId: String
+    ): Response<EmergencyCallAttemptResponseDto>
 
     @POST("api/v1/public/reports")
     suspend fun submitReport(
@@ -87,7 +122,7 @@ interface EmergencyDirectoryApi {
         @Header("Authorization") bearerToken: String?,
         @Path("reportId") reportId: String,
         @Path("assignmentId") assignmentId: String,
-        @Body body: Map<String, Any?>
+        @Body request: SubmitResponseReviewRequestDto
     ): Response<TrackedReportResponseDto>
 
     @POST("api/v1/public/auth/register/request-otp")

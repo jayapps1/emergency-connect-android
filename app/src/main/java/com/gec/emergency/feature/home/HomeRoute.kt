@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 fun HomeRoute(
     onEmergencyServicesClick: () -> Unit,
     onReportIncidentClick: () -> Unit,
+    onSilentReportClick: () -> Unit,
     onSafetyClick: () -> Unit,
     onSettingsClick: () -> Unit = {},
     onAccountClick: () -> Unit = {},
@@ -46,6 +47,7 @@ fun HomeRoute(
                 uiState = uiState,
                 onEmergencyServicesClick = onEmergencyServicesClick,
                 onReportIncidentClick = onReportIncidentClick,
+                onSilentReportClick = onSilentReportClick,
                 onSafetyClick = onSafetyClick,
                 onSettingsClick = onSettingsClick,
                 onAccountClick = onAccountClick,

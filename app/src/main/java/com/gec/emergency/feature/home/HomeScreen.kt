@@ -1,5 +1,6 @@
 package com.gec.emergency.feature.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,13 +11,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,12 +45,18 @@ import androidx.compose.ui.unit.dp
 import com.gec.emergency.R
 import com.gec.emergency.ui.theme.GhanaEmergencyConnectTheme
 
+/**
+ * Exposes the existing Silent Emergency Report directly from the citizen Home
+ * screen so discreet reporting remains immediately accessible without
+ * changing the underlying Silent reporting workflow or category taxonomy.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
     onEmergencyServicesClick: () -> Unit,
     onReportIncidentClick: () -> Unit,
+    onSilentReportClick: () -> Unit,
     onSafetyClick: () -> Unit,
     onNationalEmergencyCall: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
@@ -55,11 +70,24 @@ fun HomeScreen(
             TopAppBar(
                 title = { },
                 actions = {
-                    IconButton(onClick = onNotificationsClick) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Notifications",
-                        )
+                    BadgedBox(
+                        badge = {
+                            if (uiState.unreadNotificationCount > 0) {
+                                Badge {
+                                    Text(
+                                        if (uiState.unreadNotificationCount > 99) "99+"
+                                        else uiState.unreadNotificationCount.toString()
+                                    )
+                                }
+                            }
+                        }
+                    ) {
+                        IconButton(onClick = onNotificationsClick) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notifications",
+                            )
+                        }
                     }
                     IconButton(onClick = onAccountClick) {
                         Icon(
@@ -81,7 +109,8 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 24.dp, vertical = 16.dp),
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -101,9 +130,53 @@ fun HomeScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Prominent National Emergency Call Button (112)
+            // Prominent Safety Alert Banner if active advisory exists
+            if (uiState.activeSafetyAlert != null) {
+                val alert = uiState.activeSafetyAlert
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onSafetyClick),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Public Safety Advisory",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = alert.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Issued by: ${alert.agencyName}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+
+            // 1. Prominent National Emergency Call Button (112)
             Button(
                 onClick = onNationalEmergencyCall,
                 colors = ButtonDefaults.buttonColors(
@@ -132,6 +205,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // 2. Emergency Services Button
             Button(
                 onClick = onEmergencyServicesClick,
                 modifier = Modifier
@@ -146,6 +220,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // 3. Report Incident Button
             OutlinedButton(
                 onClick = onReportIncidentClick,
                 modifier = Modifier
@@ -160,6 +235,30 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // 4. Silent Emergency Report Button (Direct Home Entry Point)
+            OutlinedButton(
+                onClick = onSilentReportClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 52.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.VisibilityOff,
+                        contentDescription = stringResource(R.string.title_silent_report),
+                        tint = MaterialTheme.colorScheme.secondary,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.title_silent_report),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 5. Safety Information Button
             OutlinedButton(
                 onClick = onSafetyClick,
                 modifier = Modifier
@@ -183,6 +282,7 @@ fun HomeScreenPreview() {
             uiState = HomeUiState(appName = "Ghana Emergency Connect"),
             onEmergencyServicesClick = {},
             onReportIncidentClick = {},
+            onSilentReportClick = {},
             onSafetyClick = {},
             onNationalEmergencyCall = {},
             onSettingsClick = {},

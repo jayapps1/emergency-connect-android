@@ -3,6 +3,7 @@
     <string name="home_subtitle">Emergency assistance when you need it.</string>
     <string name="title_emergency_services">Emergency Services</string>
     <string name="title_report_incident">Report Incident</string>
+    <string name="title_silent_report">Silent Emergency Report</string>
     <string name="title_safety_info">Safety Information</string>
     <string name="title_nearby_stations">Nearby Stations</string>
     <string name="content_desc_back">Back</string>
@@ -44,6 +45,12 @@
     <string name="contact_type_administrative">Administrative</string>
     <string name="contact_type_other">Other</string>
 
+    <string name="status_available">Appliance Available</string>
+    <string name="status_dispatched">Responding to another emergency</string>
+    <string name="status_out_of_commission">Out of Commission</string>
+    <string name="status_maintenance">Under Maintenance</string>
+    <string name="status_call_unavailable">Call Unavailable</string>
+
     <string name="distance_meters_away">%1$d m away</string>
     <string name="distance_km_away">Approx. %1$.1f km away</string>
     <string name="accuracy_good">Good (±%1$d m)</string>
@@ -60,9 +67,6 @@
 
     <string name="location_unavailable_title">We couldn\'t determine your location.</string>
     <string name="location_unavailable_message">Please make sure location services are turned on for your device.</string>
-    <string name="location_services_disabled_title" translatable="false">Location services are turned off.</string>
-    <string name="location_services_disabled_message" translatable="false">Turn on location services to find emergency stations near you.</string>
-    <string name="open_location_settings" translatable="false">Turn On Location</string>
     <string name="no_stations_in_radius">No verified stations found within %1$d km.</string>
     <string name="increase_search_radius">Increase Search Radius</string>
     <string name="try_again">Try Again</string>

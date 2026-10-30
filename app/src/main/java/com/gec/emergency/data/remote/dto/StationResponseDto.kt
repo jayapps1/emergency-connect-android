@@ -16,4 +16,15 @@ data class StationResponseDto(
     val locationAccuracyMeters: Double? = null,
     val active: Boolean = true,
     val verified: Boolean = true,
-)
+    val availability: StationAvailabilityDto? = null,
+) {
+    data class StationAvailabilityDto(
+        val available: Boolean = true,
+        val availableCount: Int = 0,
+        val atEmergencyCount: Int = 0,
+        val outOfCommissionCount: Int = 0,
+        val maintenanceCount: Int = 0,
+        val primaryState: String = "AVAILABLE",
+        val updatedAt: String? = null,
+    )
+}

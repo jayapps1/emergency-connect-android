@@ -1,9 +1,7 @@
 package com.gec.emergency.data.repository
 
 import com.gec.emergency.core.common.AnonymousSessionProvider
-import com.gec.emergency.data.local.DevelopmentIncidentDataSource
 import com.gec.emergency.data.local.ReportTrackingStore
-import com.gec.emergency.data.mapper.toDomainModel
 import com.gec.emergency.data.remote.EmergencyDirectoryApi
 import com.gec.emergency.data.remote.dto.toDomainModel
 import com.gec.emergency.data.remote.dto.toRequestDto
@@ -18,42 +16,45 @@ import kotlinx.coroutines.flow.flow
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 import java.io.InputStream
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Remote implementation of {@link IncidentReportRepository} interacting with GEC backend endpoints.
+ * Incident categories used for public emergency submission must originate
+ * from the backend because their UUID identifies the authoritative category
+ * record used for validation and agency routing. Development fixtures must
+ * never silently replace failed operational API responses.
  *
- * <p>Identifier Mapping Note:
- * {@code clientGeneratedRequestId} provides client-side submission idempotency. Upon successful submission,
- * the domain model {@code id} is updated to the authoritative backend {@code publicReference} string (e.g. RPT-20261019-ABC123)
- * so report detail lookups and navigation use the public reference key.
+ * Preserve the backend error reason during development because HTTP 404 may
+ * represent either an unmapped endpoint or a domain-level resource lookup
+ * failure such as an inactive incident category.
  */
 @Singleton
 class RemoteIncidentReportRepository @Inject constructor(
     private val api: EmergencyDirectoryApi,
     private val sessionProvider: AnonymousSessionProvider,
     private val trackingStore: ReportTrackingStore,
-    private val fallbackDataSource: DevelopmentIncidentDataSource,
 ) : IncidentReportRepository {
 
     override suspend fun getCategories(mode: String?): List<IncidentCategory> {
-        return try {
-            val response = api.getIncidentCategories(mode)
-            if (response.isSuccessful && response.body() != null) {
-                response.body()!!.map { it.toDomainModel() }
-                    .filter { it.isActive && (mode == null || (mode == "SILENT" && it.reportModeSupported.contains(com.gec.emergency.domain.model.ReportMode.SILENT))) }
-                    .sortedWith(compareBy({ it.displayOrder }, { it.name }))
-            } else {
-                fallbackDataSource.getCategories().filter {
-                    it.isActive && (mode == null || (mode == "SILENT" && it.reportModeSupported.contains(com.gec.emergency.domain.model.ReportMode.SILENT)))
-                }.sortedWith(compareBy({ it.displayOrder }, { it.name }))
-            }
-        } catch (e: Exception) {
-            fallbackDataSource.getCategories().filter {
-                it.isActive && (mode == null || (mode == "SILENT" && it.reportModeSupported.contains(com.gec.emergency.domain.model.ReportMode.SILENT)))
-            }.sortedWith(compareBy({ it.displayOrder }, { it.name }))
+        val matchesMode: (IncidentCategory) -> Boolean = { category ->
+            category.isActive && (
+                mode == null ||
+                (mode.equals("SILENT", ignoreCase = true) && category.reportModeSupported.contains(com.gec.emergency.domain.model.ReportMode.SILENT)) ||
+                (mode.equals("GENERAL", ignoreCase = true) && category.reportModeSupported.contains(com.gec.emergency.domain.model.ReportMode.GENERAL))
+            )
+        }
+
+        val response = api.getIncidentCategories(mode)
+        if (response.isSuccessful && response.body() != null) {
+            return response.body()!!.map { it.toDomainModel() }
+                .filter(matchesMode)
+                .sortedWith(compareBy({ it.displayOrder }, { it.name }))
+        } else {
+            throw IllegalStateException("Unable to load incident categories. Server status: ${response.code()}")
         }
     }
 
@@ -64,8 +65,17 @@ class RemoteIncidentReportRepository @Inject constructor(
     override suspend fun submitReport(report: IncidentReport): ReportSubmissionResult {
         return try {
             val sessionId = sessionProvider.getOrCreateSessionId()
-            val preparedReport = report.copy(anonymousSessionId = sessionId)
-            val requestDto = preparedReport.toRequestDto(clientRequestId = preparedReport.id)
+            val clientRequestId = try {
+                UUID.fromString(report.id).toString()
+            } catch (_: Exception) {
+                UUID.randomUUID().toString()
+            }
+
+            val preparedReport = report.copy(
+                id = clientRequestId,
+                anonymousSessionId = sessionId,
+            )
+            val requestDto = preparedReport.toRequestDto(clientRequestId = clientRequestId)
 
             val installationId = trackingStore.getOrCreateInstallationId()
             val authToken = trackingStore.getPublicAuthToken()
@@ -79,7 +89,7 @@ class RemoteIncidentReportRepository @Inject constructor(
 
             if (response.isSuccessful && response.body() != null) {
                 val respDto = response.body()!!
-                val authoritativeRef = respDto.publicReference.ifBlank { preparedReport.id }
+                val authoritativeRef = respDto.publicReference.ifBlank { clientRequestId }
 
                 val submittedReport = preparedReport.copy(
                     id = authoritativeRef,
@@ -94,7 +104,22 @@ class RemoteIncidentReportRepository @Inject constructor(
 
                 ReportSubmissionResult.Success(submittedReport)
             } else {
-                ReportSubmissionResult.Failed("Failed to submit report. Server status: ${response.code()}")
+                val rawError = response.errorBody()?.string()
+                val parsedMsg = try {
+                    if (!rawError.isNullOrBlank()) {
+                        JSONObject(rawError).optString("message").ifBlank { null }
+                    } else null
+                } catch (_: Exception) {
+                    null
+                }
+
+                val safeMsg = parsedMsg ?: when (response.code()) {
+                    400 -> "Report validation error. Please check your submission fields."
+                    404 -> "Selected category or reporting service is no longer active."
+                    else -> "Failed to submit report. Server status: ${response.code()}"
+                }
+
+                ReportSubmissionResult.Failed(safeMsg)
             }
         } catch (e: Exception) {
             ReportSubmissionResult.Failed(e.localizedMessage ?: "Network error. Please check your connection.")
