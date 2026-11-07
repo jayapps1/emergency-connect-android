@@ -9,6 +9,7 @@ data class IncidentCategoryResponseDto(
     val supportsSilent: Boolean,
     val supportsGeneral: Boolean,
     val supportsCall: Boolean,
+    val trackingPolicy: String = "SNAPSHOT_ONLY",
     val displayOrder: Int = 0,
     val defaultAgencyTypes: Set<String> = emptySet(),
 )

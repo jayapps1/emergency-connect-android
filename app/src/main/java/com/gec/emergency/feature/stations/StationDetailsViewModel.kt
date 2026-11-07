@@ -6,9 +6,12 @@ import com.gec.emergency.core.calling.CallManager
 import com.gec.emergency.core.calling.CallRequest
 import com.gec.emergency.core.calling.CallResult
 import com.gec.emergency.core.calling.CallType
+import com.gec.emergency.core.location.LocationProvider
+import com.gec.emergency.core.location.LocationResult
 import com.gec.emergency.domain.model.Station
 import com.gec.emergency.domain.model.StationContact
 import com.gec.emergency.domain.model.StationContactType
+import com.gec.emergency.domain.repository.StationRepository
 import com.gec.emergency.domain.usecase.GetPublicStationContactsUseCase
 import com.gec.emergency.domain.usecase.GetStationByIdUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,6 +29,8 @@ class StationDetailsViewModel @Inject constructor(
     private val getStationByIdUseCase: GetStationByIdUseCase,
     private val getPublicStationContactsUseCase: GetPublicStationContactsUseCase,
     private val callManager: CallManager,
+    private val locationProvider: LocationProvider,
+    private val stationRepository: StationRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StationDetailsUiState())
@@ -100,12 +105,33 @@ class StationDetailsViewModel @Inject constructor(
 
     fun makeFastCall(station: Station, contact: StationContact) {
         viewModelScope.launch {
+            val location = locationProvider.getCurrentLocation().let {
+                if (it is LocationResult.Success) it.location else null
+            }
+
+            val callAttemptId = runCatching {
+                stationRepository.createEmergencyCallAttempt(
+                    agencyId = station.agencyId,
+                    stationId = station.id,
+                    stationContactId = contact.id,
+                    destinationType = "STATION_CONTACT",
+                    location = location,
+                )
+            }.getOrNull()
+
             val request = CallRequest(
                 phoneNumber = contact.phoneNumber,
                 callType = CallType.FAST,
                 stationId = station.id,
             )
             val result = callManager.placeCall(request)
+
+            if (result == CallResult.Started && !callAttemptId.isNullOrBlank()) {
+                runCatching {
+                    stationRepository.markCallLaunched(callAttemptId)
+                }
+            }
+
             _callEvents.send(result)
         }
     }
@@ -119,7 +145,30 @@ class StationDetailsViewModel @Inject constructor(
     fun confirmCall(request: CallRequest) {
         dismissCallConfirmation()
         viewModelScope.launch {
+            val station = _uiState.value.station
+            val location = locationProvider.getCurrentLocation().let {
+                if (it is LocationResult.Success) it.location else null
+            }
+
+            val agencyId = station?.agencyId ?: "11111111-1111-1111-1111-111111111111"
+            val callAttemptId = runCatching {
+                stationRepository.createEmergencyCallAttempt(
+                    agencyId = agencyId,
+                    stationId = station?.id ?: request.stationId,
+                    stationContactId = null,
+                    destinationType = "STATION_CONTACT",
+                    location = location,
+                )
+            }.getOrNull()
+
             val result = callManager.placeCall(request)
+
+            if (result == CallResult.Started && !callAttemptId.isNullOrBlank()) {
+                runCatching {
+                    stationRepository.markCallLaunched(callAttemptId)
+                }
+            }
+
             _callEvents.send(result)
         }
     }

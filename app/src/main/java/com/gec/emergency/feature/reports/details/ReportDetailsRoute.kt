@@ -32,6 +32,9 @@ fun ReportDetailsRoute(
         onSubmitReview = { rating, speed, prof, helpful, comment ->
             viewModel.submitResponseReview(rating, speed, prof, helpful, comment)
         },
+        onRespondLiveRequest = { context, action ->
+            viewModel.respondToLiveRequest(context, action)
+        },
         modifier = modifier,
     )
 }

@@ -19,6 +19,8 @@ object Routes {
     const val SETTINGS = "settings"
     const val ACCOUNT = "account"
     const val REGISTER = "register"
+    const val LOGIN = "login"
+    const val FORGOT_PASSWORD = "forgot_password"
     const val OTP_VERIFY = "otp_verify"
     const val MY_REPORTS = "my_reports"
     const val NOTIFICATIONS = "notifications"

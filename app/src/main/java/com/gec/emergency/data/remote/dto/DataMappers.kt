@@ -82,6 +82,7 @@ fun IncidentCategoryResponseDto.toDomainModel(): IncidentCategory {
         reportModeSupported = supportedModes,
         defaultAgencyTypes = mappedAgencies,
         supportsCall = supportsCall,
+        trackingPolicy = trackingPolicy,
         isActive = true,
         displayOrder = displayOrder,
     )

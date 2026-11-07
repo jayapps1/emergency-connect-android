@@ -1,5 +1,6 @@
 package com.gec.emergency.domain.repository
 
+import com.gec.emergency.data.remote.dto.LiveTrackingRequestDto
 import com.gec.emergency.domain.model.GeoLocation
 import com.gec.emergency.domain.model.NearbyStation
 import com.gec.emergency.domain.model.NearbyStationQuery
@@ -25,4 +26,7 @@ interface StationRepository {
         location: GeoLocation?,
     ): String? = null
     suspend fun markCallLaunched(callAttemptId: String): Boolean = false
+    suspend fun getPendingLiveTrackingRequests(reportId: String): List<LiveTrackingRequestDto> = emptyList()
+    suspend fun respondToLiveTrackingRequest(requestId: String, action: String): Boolean = false
+    suspend fun createLocationSession(reportId: String): String? = null
 }

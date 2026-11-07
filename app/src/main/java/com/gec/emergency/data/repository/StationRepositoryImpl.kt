@@ -4,6 +4,8 @@ import com.gec.emergency.data.local.ReportTrackingStore
 import com.gec.emergency.data.mapper.toDomainModel
 import com.gec.emergency.data.remote.EmergencyDirectoryApi
 import com.gec.emergency.data.remote.dto.CreateEmergencyCallAttemptRequestDto
+import com.gec.emergency.data.remote.dto.CreateLocationSessionRequestDto
+import com.gec.emergency.data.remote.dto.LiveTrackingRequestDto
 import com.gec.emergency.domain.model.GeoLocation
 import com.gec.emergency.domain.model.NearbyStation
 import com.gec.emergency.domain.model.NearbyStationQuery
@@ -31,6 +33,7 @@ class StationRepositoryImpl @Inject constructor(
     private val trackingStore: ReportTrackingStore,
 ) : StationRepository {
 
+    // Resolves agency UUID and loads published active and verified stations for the specified agency.
     override fun getStationsByAgency(agencyId: String): Flow<List<Station>> = flow {
         val targetUuid = resolveAgencyUuid(agencyId)
         val response = api.getStationsByAgency(targetUuid)
@@ -51,6 +54,7 @@ class StationRepositoryImpl @Inject constructor(
         }
     }
 
+    // Retrieves published public contact numbers for an active verified station.
     override fun getContactsForStation(stationId: String): Flow<List<StationContact>> = flow {
         val response = api.getStationContacts(stationId)
         if (response.isSuccessful && response.body() != null) {
@@ -61,6 +65,7 @@ class StationRepositoryImpl @Inject constructor(
         }
     }
 
+    // Combines verified stations from selected agencies, calculates their geographic distance from the citizen, and sorts them nearest-first.
     override fun getNearbyStations(query: NearbyStationQuery): Flow<List<NearbyStation>> = flow {
         val allStations = if (query.agencyId.isNullOrEmpty() || query.agencyId.equals("ALL", ignoreCase = true)) {
             val resp = api.getAllPublicStations()
@@ -143,6 +148,7 @@ class StationRepositoryImpl @Inject constructor(
         } catch (_: Exception) {}
     }
 
+    // Records the citizen's emergency call attempt and initiation location before cellular handoff.
     override suspend fun createEmergencyCallAttempt(
         agencyId: String,
         stationId: String?,
@@ -184,6 +190,46 @@ class StationRepositoryImpl @Inject constructor(
             resp.isSuccessful
         } catch (_: Exception) {
             false
+        }
+    }
+
+    override suspend fun getPendingLiveTrackingRequests(reportId: String): List<LiveTrackingRequestDto> {
+        return try {
+            val resp = api.getRequestsForReport(reportId)
+            if (resp.isSuccessful && resp.body() != null) {
+                resp.body()!!.filter { it.status == "PENDING" }
+            } else {
+                emptyList()
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    override suspend fun respondToLiveTrackingRequest(requestId: String, action: String): Boolean {
+        return try {
+            val resp = api.respondToLiveTrackingRequest(requestId, action)
+            resp.isSuccessful
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    override suspend fun createLocationSession(reportId: String): String? {
+        return try {
+            val installationId = trackingStore.getOrCreateInstallationId()
+            val req = CreateLocationSessionRequestDto(
+                reportId = reportId,
+                trackingPolicy = "LIVE_OPTIONAL",
+            )
+            val resp = api.createLocationSession(installationId, req)
+            if (resp.isSuccessful && resp.body() != null) {
+                resp.body()!!.sessionId
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
         }
     }
 

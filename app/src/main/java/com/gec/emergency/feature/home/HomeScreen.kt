@@ -1,7 +1,11 @@
 package com.gec.emergency.feature.home
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,38 +14,39 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.gec.emergency.R
 import com.gec.emergency.ui.theme.GhanaEmergencyConnectTheme
 
@@ -50,7 +55,6 @@ import com.gec.emergency.ui.theme.GhanaEmergencyConnectTheme
  * screen so discreet reporting remains immediately accessible without
  * changing the underlying Silent reporting workflow or category taxonomy.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
@@ -58,6 +62,7 @@ fun HomeScreen(
     onReportIncidentClick: () -> Unit,
     onSilentReportClick: () -> Unit,
     onSafetyClick: () -> Unit,
+    onOfflineDirectoryClick: () -> Unit = {},
     onNationalEmergencyCall: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onAccountClick: () -> Unit = {},
@@ -66,44 +71,6 @@ fun HomeScreen(
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { },
-                actions = {
-                    BadgedBox(
-                        badge = {
-                            if (uiState.unreadNotificationCount > 0) {
-                                Badge {
-                                    Text(
-                                        if (uiState.unreadNotificationCount > 99) "99+"
-                                        else uiState.unreadNotificationCount.toString()
-                                    )
-                                }
-                            }
-                        }
-                    ) {
-                        IconButton(onClick = onNotificationsClick) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = "Notifications",
-                            )
-                        }
-                    }
-                    IconButton(onClick = onAccountClick) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "Account Profile",
-                        )
-                    }
-                    IconButton(onClick = onSettingsClick) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.title_settings),
-                        )
-                    }
-                }
-            )
-        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -114,162 +81,218 @@ fun HomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = uiState.appName,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
+            // Official GEC Logo Branding
+            Image(
+                painter = painterResource(R.drawable.gec_logo_transparent),
+                contentDescription = stringResource(R.string.app_name),
+                modifier = Modifier
+                    .height(115.dp)
+                    .fillMaxWidth(),
+                contentScale = ContentScale.Fit
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            Text(
-                text = stringResource(R.string.home_subtitle),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Prominent Safety Alert Banner if active advisory exists
+            // Active Safety Alert Banner
             if (uiState.activeSafetyAlert != null) {
-                val alert = uiState.activeSafetyAlert
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onSafetyClick),
+                        .padding(bottom = 16.dp)
+                        .clickable { onSafetyClick() },
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Public Safety Advisory",
+                                text = uiState.activeSafetyAlert.title,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Text(
+                                text = uiState.activeSafetyAlert.content,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
+                                maxLines = 2
                             )
                         }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = alert.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Issued by: ${alert.agencyName}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
                 }
-                Spacer(modifier = Modifier.height(20.dp))
             }
 
-            // 1. Prominent National Emergency Call Button (112)
-            Button(
-                onClick = onNationalEmergencyCall,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                ),
+            // Premium 3D Elevated Red 112 Emergency Button
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 56.dp)
+                    .heightIn(min = 72.dp)
+                    .clickable { onNationalEmergencyCall() }
+                    .shadow(
+                        elevation = 12.dp,
+                        shape = RoundedCornerShape(20.dp),
+                        ambientColor = Color(0xFFD32F2F).copy(alpha = 0.5f),
+                        spotColor = Color(0xFFB71C1C).copy(alpha = 0.6f)
+                    ),
+                shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(1.5.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.45f), Color.White.copy(alpha = 0.1f)))),
+                color = Color.Transparent
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0xFFE53935),
+                                    Color(0xFFC62828),
+                                    Color(0xFF8E0000)
+                                )
+                            )
+                        )
+                        .padding(vertical = 14.dp, horizontal = 20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column(horizontalAlignment = Alignment.Start) {
+                            Text(
+                                text = "112",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Black,
+                                color = Color.White,
+                                letterSpacing = 2.sp
+                            )
+                            Text(
+                                text = "CALL NATIONAL EMERGENCY",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White.copy(alpha = 0.95f),
+                                letterSpacing = 0.8.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Offline Emergency Numbers Button
+            OutlinedButton(
+                onClick = onOfflineDirectoryClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Book,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Text(
+                    text = "Offline Emergency Numbers",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Secondary Actions Grid
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = onReportIncidentClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Text(
+                        text = stringResource(R.string.title_report_incident),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                // Silent Emergency Report Button
+                OutlinedButton(
+                    onClick = onSilentReportClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Phone,
-                        contentDescription = null,
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.national_emergency_button),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 2. Emergency Services Button
-            Button(
-                onClick = onEmergencyServicesClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 52.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.title_emergency_services),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 3. Report Incident Button
-            OutlinedButton(
-                onClick = onReportIncidentClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 52.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.title_report_incident),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 4. Silent Emergency Report Button (Direct Home Entry Point)
-            OutlinedButton(
-                onClick = onSilentReportClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 52.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
                         imageVector = Icons.Default.VisibilityOff,
-                        contentDescription = stringResource(R.string.title_silent_report),
-                        tint = MaterialTheme.colorScheme.secondary,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 8.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = stringResource(R.string.title_silent_report),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = onEmergencyServicesClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Text(
+                        text = stringResource(R.string.title_emergency_services),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = onSafetyClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Text(
+                        text = stringResource(R.string.title_safety_info),
+                        style = MaterialTheme.typography.bodyLarge
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 5. Safety Information Button
-            OutlinedButton(
-                onClick = onSafetyClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 52.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.title_safety_info),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
+            Spacer(modifier = Modifier.height(128.dp))
         }
     }
 }
@@ -283,11 +306,7 @@ fun HomeScreenPreview() {
             onEmergencyServicesClick = {},
             onReportIncidentClick = {},
             onSilentReportClick = {},
-            onSafetyClick = {},
-            onNationalEmergencyCall = {},
-            onSettingsClick = {},
-            onAccountClick = {},
-            onNotificationsClick = {},
+            onSafetyClick = {}
         )
     }
 }

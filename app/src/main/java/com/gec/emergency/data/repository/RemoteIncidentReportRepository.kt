@@ -39,6 +39,7 @@ class RemoteIncidentReportRepository @Inject constructor(
     private val trackingStore: ReportTrackingStore,
 ) : IncidentReportRepository {
 
+    // Loads active incident categories from the backend API for the requested reporting mode.
     override suspend fun getCategories(mode: String?): List<IncidentCategory> {
         val matchesMode: (IncidentCategory) -> Boolean = { category ->
             category.isActive && (
@@ -62,6 +63,7 @@ class RemoteIncidentReportRepository @Inject constructor(
         return getCategories(null).find { it.id == id }
     }
 
+    // Prepares the report payload with installation ID, anonymous session ID, and client request UUID before POST submission.
     override suspend fun submitReport(report: IncidentReport): ReportSubmissionResult {
         return try {
             val sessionId = sessionProvider.getOrCreateSessionId()
@@ -126,6 +128,7 @@ class RemoteIncidentReportRepository @Inject constructor(
         }
     }
 
+    // Uploads optional media attachments for an incident report without failing the core report.
     override suspend fun uploadReportAttachment(
         reportId: String,
         trackingToken: String,
@@ -148,6 +151,7 @@ class RemoteIncidentReportRepository @Inject constructor(
         }
     }
 
+    // Tracks a public report using its public reference key and tracking token.
     override suspend fun getReportById(id: String): IncidentReport? {
         val trackingToken = trackingStore.getTrackingToken(id)?.ifBlank { null }
         return try {

@@ -1,5 +1,6 @@
 package com.gec.emergency.feature.reports.details
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -46,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -74,6 +76,7 @@ fun ReportDetailsScreen(
     onOpenRatingDialog: (TrackedReportResponseDto.AgencyAssignmentDetailDto) -> Unit = {},
     onDismissRatingDialog: () -> Unit = {},
     onSubmitReview: (Int, Int?, Int?, Int?, String) -> Unit = { _, _, _, _, _ -> },
+    onRespondLiveRequest: (Context, String) -> Unit = { _, _ -> },
 ) {
     var ratingValue by remember { mutableIntStateOf(5) }
     var reviewComment by remember { mutableStateOf("") }
@@ -111,6 +114,16 @@ fun ReportDetailsScreen(
                     val publicRef = tracked?.publicReference ?: report?.publicReference ?: report?.id ?: ""
                     val currentStatus = tracked?.status ?: report?.status?.name ?: "SUBMITTED"
 
+                    val displayStatusText = when (currentStatus) {
+                        "PARTIALLY_COMPLETED" -> "Partially Completed"
+                        "IN_PROGRESS" -> "In Progress"
+                        "RESOLVED" -> "Resolved / Completed"
+                        else -> currentStatus
+                    }
+
+                    val completedAgencyCount = tracked?.agencyAssignments?.count { it.status == "RESOLVED" || it.status == "COMPLETED" } ?: 0
+                    val totalAgencyCount = tracked?.agencyAssignments?.size ?: tracked?.targetAgencyTypes?.size ?: 1
+
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -137,15 +150,13 @@ fun ReportDetailsScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     AssistChip(
                                         onClick = { },
-                                        label = { Text("Status: $currentStatus") },
+                                        label = { Text("Overall Status: $displayStatusText") },
                                     )
-                                    if (report != null) {
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        AssistChip(
-                                            onClick = { },
-                                            label = { Text("Mode: ${report.mode.name}") },
-                                        )
-                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    AssistChip(
+                                        onClick = { },
+                                        label = { Text("Progress: $completedAgencyCount of $totalAgencyCount Completed") },
+                                    )
                                 }
                             }
                         }
@@ -155,13 +166,19 @@ fun ReportDetailsScreen(
                         // Multi-Agency Assignment Response Cards
                         if (tracked != null && tracked.agencyAssignments.isNotEmpty()) {
                             Text(
-                                text = "Responding Agencies & Status",
+                                text = "Emergency Response Progress",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                             )
                             Spacer(modifier = Modifier.height(8.dp))
 
                             tracked.agencyAssignments.forEach { assignment ->
+                                val statusLabel = when (assignment.status) {
+                                    "RESOLVED" -> "Completed"
+                                    "IN_PROGRESS" -> "In Progress"
+                                    else -> assignment.status
+                                }
+
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -191,7 +208,7 @@ fun ReportDetailsScreen(
                                             }
                                             AssistChip(
                                                 onClick = { },
-                                                label = { Text(assignment.status) },
+                                                label = { Text(statusLabel) },
                                             )
                                         }
 
@@ -206,7 +223,7 @@ fun ReportDetailsScreen(
 
                                         Spacer(modifier = Modifier.height(12.dp))
 
-                                        if (assignment.status == "RESOLVED") {
+                                        if (assignment.status == "RESOLVED" || assignment.status == "COMPLETED") {
                                             if (assignment.review != null) {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                                     Text(
@@ -299,6 +316,48 @@ fun ReportDetailsScreen(
                 }
             }
         }
+    }
+
+    if (uiState.pendingLiveRequest != null) {
+        val context = LocalContext.current
+        AlertDialog(
+            onDismissRequest = { onRespondLiveRequest(context, "DECLINE") },
+            title = {
+                Text(
+                    text = "Live Location Requested",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Emergency response personnel have requested your live location to help coordinate response if you are moving.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Note: Android may display a persistent system notification while live sharing is active.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { onRespondLiveRequest(context, "ACCEPT") },
+                ) {
+                    Text("Share Live Location")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { onRespondLiveRequest(context, "DECLINE") },
+                ) {
+                    Text("Decline")
+                }
+            },
+        )
     }
 
     if (uiState.isRatingDialogOpen && uiState.ratingTargetAssignment != null) {

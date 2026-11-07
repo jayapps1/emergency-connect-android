@@ -1,13 +1,16 @@
 package com.gec.emergency.feature.reports.details
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gec.emergency.core.location.IncidentLocationSharingService
 import com.gec.emergency.data.local.ReportTrackingStore
 import com.gec.emergency.data.remote.EmergencyDirectoryApi
 import com.gec.emergency.data.remote.dto.SubmitResponseReviewRequestDto
 import com.gec.emergency.data.remote.dto.TrackedReportResponseDto
 import com.gec.emergency.domain.repository.IncidentReportRepository
+import com.gec.emergency.domain.repository.StationRepository
 import com.gec.emergency.domain.usecase.GetReportByIdUseCase
 import com.gec.emergency.domain.usecase.RouteIncidentReportUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,6 +30,7 @@ class ReportDetailsViewModel @Inject constructor(
     private val getReportByIdUseCase: GetReportByIdUseCase,
     private val incidentReportRepository: IncidentReportRepository,
     private val routeIncidentReportUseCase: RouteIncidentReportUseCase,
+    private val stationRepository: StationRepository,
     private val api: EmergencyDirectoryApi,
     private val trackingStore: ReportTrackingStore,
 ) : ViewModel() {
@@ -51,6 +55,9 @@ class ReportDetailsViewModel @Inject constructor(
                 }
             } catch (_: Exception) {}
 
+            val pendingRequests = stationRepository.getPendingLiveTrackingRequests(reportId)
+            val pending = pendingRequests.firstOrNull()
+
             if (report != null || trackedDto != null) {
                 val category = report?.let { incidentReportRepository.getCategoryById(it.categoryId) }
                 val targetAgencies = if (report != null && category != null) {
@@ -65,6 +72,7 @@ class ReportDetailsViewModel @Inject constructor(
                     targetAgencyTypes = targetAgencies,
                     statusHistory = history,
                     trackedDetail = trackedDto,
+                    pendingLiveRequest = pending,
                 )
             } else {
                 _uiState.value = _uiState.value.copy(
@@ -72,6 +80,22 @@ class ReportDetailsViewModel @Inject constructor(
                     errorMessage = "Report detail not found.",
                 )
             }
+        }
+    }
+
+    fun respondToLiveRequest(context: Context, action: String) {
+        val req = _uiState.value.pendingLiveRequest ?: return
+        val reportId = activeReportId ?: return
+
+        viewModelScope.launch {
+            val success = stationRepository.respondToLiveTrackingRequest(req.id, action)
+            if (success && "ACCEPT".equals(action, ignoreCase = true)) {
+                val sessionId = stationRepository.createLocationSession(reportId)
+                if (!sessionId.isNullOrBlank()) {
+                    IncidentLocationSharingService.startService(context, sessionId)
+                }
+            }
+            _uiState.value = _uiState.value.copy(pendingLiveRequest = null)
         }
     }
 

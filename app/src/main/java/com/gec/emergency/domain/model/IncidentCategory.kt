@@ -9,6 +9,7 @@ data class IncidentCategory(
     val reportModeSupported: Set<ReportMode>,
     val defaultAgencyTypes: Set<AgencyType> = emptySet(),
     val supportsCall: Boolean = true,
+    val trackingPolicy: String = "SNAPSHOT_ONLY",
     val isActive: Boolean = true,
     val displayOrder: Int = 0,
 ) {

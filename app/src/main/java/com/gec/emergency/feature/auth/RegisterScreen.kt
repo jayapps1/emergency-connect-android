@@ -1,17 +1,22 @@
 package com.gec.emergency.feature.auth
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
@@ -33,19 +38,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.gec.emergency.feature.account.AccountUiState
 
-/**
- * Partial phone-number input must always be preserved while typing.
- * Full Ghana-number validation is performed separately from onValueChange
- * so incomplete intermediate values are not discarded.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
@@ -53,15 +52,21 @@ fun RegisterScreen(
     onPhoneNumberChanged: (String) -> Unit,
     onBackClick: () -> Unit,
     onRequestOtp: (String) -> Unit,
-    onContinueAsGuest: () -> Unit,
+    onNavigateToLogin: () -> Unit = {},
+    onContinueAsGuest: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    var passwordInput by rememberSaveable { mutableStateOf("") }
+    var confirmPasswordInput by rememberSaveable { mutableStateOf("") }
+    var firstNameInput by rememberSaveable { mutableStateOf("") }
+    var lastNameInput by rememberSaveable { mutableStateOf("") }
     var validationError by rememberSaveable { mutableStateOf<String?>(null) }
+
     val keyboardController = LocalSoftwareKeyboardController.current
 
     val phoneInput = uiState.phoneNumberInput
     val digitsOnly = phoneInput.filter { it.isDigit() }
-    val canSubmit = digitsOnly.length >= 9 && !uiState.isRequestingOtp
+    val isPhoneValid = digitsOnly.length >= 9
 
     Scaffold(
         modifier = modifier,
@@ -87,7 +92,9 @@ fun RegisterScreen(
             contentAlignment = Alignment.TopCenter,
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Icon(
@@ -102,7 +109,7 @@ fun RegisterScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "Verify Your Phone Number",
+                    text = "Create Citizen Account",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )
@@ -110,12 +117,12 @@ fun RegisterScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Verify your mobile phone to access your report history and track emergency response status.",
+                    text = "Register with your phone number and password to track emergency reports and set up 2-step verification.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 OutlinedTextField(
                     value = phoneInput,
@@ -123,37 +130,70 @@ fun RegisterScreen(
                         onPhoneNumberChanged(newValue)
                         validationError = null
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onFocusChanged { focusState ->
-                            if (focusState.isFocused) {
-                                keyboardController?.show()
-                            }
-                        },
+                    modifier = Modifier.fillMaxWidth(),
                     label = { Text("Phone Number") },
                     placeholder = { Text("0541553337") },
-                    leadingIcon = {
-                        Icon(imageVector = Icons.Default.Phone, contentDescription = null)
-                    },
-                    prefix = {
-                        Text("+233 ", fontWeight = FontWeight.Bold)
-                    },
+                    leadingIcon = { Icon(imageVector = Icons.Default.Phone, contentDescription = null) },
+                    prefix = { Text("+233 ", fontWeight = FontWeight.Bold) },
                     singleLine = true,
-                    enabled = true,
-                    readOnly = false,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Phone,
-                        imeAction = ImeAction.Done,
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            keyboardController?.hide()
-                            if (canSubmit) {
-                                onRequestOtp(normalizeGhanaPhoneNumber(phoneInput))
-                            }
-                        }
-                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = passwordInput,
+                    onValueChange = {
+                        passwordInput = it
+                        validationError = null
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Password (min 6 chars)") },
+                    leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = null) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = confirmPasswordInput,
+                    onValueChange = {
+                        confirmPasswordInput = it
+                        validationError = null
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Confirm Password") },
+                    leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = null) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = firstNameInput,
+                        onValueChange = { firstNameInput = it },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("First Name") },
+                        leadingIcon = { Icon(imageVector = Icons.Default.Person, contentDescription = null) },
+                        singleLine = true,
+                    )
+
+                    OutlinedTextField(
+                        value = lastNameInput,
+                        onValueChange = { lastNameInput = it },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Last Name") },
+                        singleLine = true,
+                    )
+                }
 
                 if (validationError != null || uiState.errorMessage != null) {
                     Spacer(modifier = Modifier.height(12.dp))
@@ -169,14 +209,17 @@ fun RegisterScreen(
                 Button(
                     onClick = {
                         keyboardController?.hide()
-                        if (!canSubmit) {
+                        if (!isPhoneValid) {
                             validationError = "Enter a valid Ghana phone number."
+                        } else if (passwordInput.length < 6) {
+                            validationError = "Password must be at least 6 characters long."
+                        } else if (passwordInput != confirmPasswordInput) {
+                            validationError = "Passwords do not match."
                         } else {
                             validationError = null
                             onRequestOtp(normalizeGhanaPhoneNumber(phoneInput))
                         }
                     },
-                    enabled = canSubmit,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
@@ -195,6 +238,12 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                TextButton(onClick = onNavigateToLogin) {
+                    Text("Already have an account? Sign In")
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
                 OutlinedButton(
                     onClick = onContinueAsGuest,
                     modifier = Modifier.fillMaxWidth(),
@@ -203,10 +252,6 @@ fun RegisterScreen(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-
-                TextButton(onClick = onContinueAsGuest) {
-                    Text("Emergency reporting and calling do not require an account.")
-                }
             }
         }
     }

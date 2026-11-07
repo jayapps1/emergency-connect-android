@@ -1,9 +1,11 @@
 package com.gec.emergency.feature.stations
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,11 +15,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,13 +36,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -70,7 +77,7 @@ fun StationsScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(titleText) },
+                title = { Text(titleText, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -86,7 +93,7 @@ fun StationsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center,
         ) {
             when {
@@ -95,7 +102,8 @@ fun StationsScreen(
                 }
                 uiState.stations.isNotEmpty() -> {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 128.dp)
                     ) {
                         items(uiState.stations, key = { it.id }) { station ->
                             val contacts = uiState.stationContacts[station.id] ?: emptyList()
@@ -107,7 +115,7 @@ fun StationsScreen(
                                     onInitiateCall(station, contact)
                                 },
                             )
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
                         }
                     }
                 }
@@ -161,50 +169,70 @@ private fun StationItem(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onStationClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(18.dp)
         ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = station.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
                 )
+
                 if (station.isVerified) {
-                    Spacer(modifier = Modifier.width(6.dp))
-                    SuggestionChip(
+                    Spacer(modifier = Modifier.width(8.dp))
+                    AssistChip(
                         onClick = onStationClick,
-                        label = { Text(stringResource(R.string.verified_label)) },
-                        icon = {
+                        label = { Text("Verified", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = {
                             Icon(
-                                imageVector = Icons.Default.CheckCircle,
+                                imageVector = Icons.Default.Verified,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 2.dp)
                             )
                         },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        ),
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                            labelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "${station.locality ?: station.district}, ${station.region}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(end = 4.dp)
+                )
+                Text(
+                    text = "${station.locality ?: station.district}, ${station.region}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
 
             if (contacts.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 contacts.forEach { contact ->
                     ContactRow(
@@ -234,48 +262,47 @@ private fun ContactRow(
         ) {
             Text(
                 text = formatContactType(contact.type),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (contact.priority == 1) FontWeight.Bold else FontWeight.Normal,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = contact.phoneNumber,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        if (contact.priority == 1) {
-            Button(
-                onClick = onCallClick,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Phone,
-                    contentDescription = null,
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(stringResource(R.string.call_button_label))
-            }
-        } else {
-            OutlinedButton(
-                onClick = onCallClick,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Phone,
-                    contentDescription = null,
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(stringResource(R.string.call_button_label))
-            }
+        Button(
+            onClick = onCallClick,
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF0F243E),
+                contentColor = Color.White
+            ),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Phone,
+                contentDescription = null,
+                modifier = Modifier.padding(end = 6.dp)
+            )
+            Text(
+                text = "Call Station",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelLarge
+            )
         }
     }
 }
 
 private fun formatContactType(type: StationContactType): String {
     return when (type) {
-        StationContactType.WATCHROOM -> "Watchroom"
+        StationContactType.WATCHROOM -> "Watchroom Dispatch"
         StationContactType.CONTROL_ROOM -> "Control Room"
         StationContactType.EMERGENCY -> "Emergency Direct"
         StationContactType.ALTERNATIVE -> "Alternative Line"

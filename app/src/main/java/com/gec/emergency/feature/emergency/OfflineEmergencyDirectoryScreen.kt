@@ -3,6 +3,7 @@ package com.gec.emergency.feature.emergency
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -23,7 +25,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ChipColors
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -46,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.gec.emergency.R
@@ -70,7 +72,7 @@ fun OfflineEmergencyDirectoryScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.title_offline_directory)) },
+                title = { Text(stringResource(R.string.title_offline_directory), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -86,7 +88,7 @@ fun OfflineEmergencyDirectoryScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             contentAlignment = Alignment.TopCenter,
         ) {
             when {
@@ -95,7 +97,8 @@ fun OfflineEmergencyDirectoryScreen(
                 }
                 else -> {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 128.dp)
                     ) {
                         item {
                             Card(
@@ -150,10 +153,8 @@ fun OfflineEmergencyDirectoryScreen(
                             HorizontalDivider()
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
+                            Column(
+                                modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
                                     text = "Regional Headquarters Contacts",
@@ -161,29 +162,46 @@ fun OfflineEmergencyDirectoryScreen(
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
                                 )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Filter by Region:",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
 
-                                Box {
-                                    OutlinedButton(
-                                        onClick = { regionDropdownExpanded = true },
-                                    ) {
-                                        Icon(imageVector = Icons.Default.LocationOn, contentDescription = null)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(uiState.selectedRegionName)
-                                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
-                                    }
-
-                                    DropdownMenu(
-                                        expanded = regionDropdownExpanded,
-                                        onDismissRequest = { regionDropdownExpanded = false },
-                                    ) {
-                                        uiState.availableRegions.forEach { region ->
-                                            DropdownMenuItem(
-                                                text = { Text(region.name) },
-                                                onClick = {
-                                                    regionDropdownExpanded = false
-                                                    onRegionSelected(region.name)
-                                                },
+                                    Box {
+                                        OutlinedButton(
+                                            onClick = { regionDropdownExpanded = true },
+                                            modifier = Modifier.widthIn(max = 180.dp)
+                                        ) {
+                                            Icon(imageVector = Icons.Default.LocationOn, contentDescription = null)
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = uiState.selectedRegionName,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
                                             )
+                                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
+                                        }
+
+                                        DropdownMenu(
+                                            expanded = regionDropdownExpanded,
+                                            onDismissRequest = { regionDropdownExpanded = false },
+                                        ) {
+                                            uiState.availableRegions.forEach { region ->
+                                                DropdownMenuItem(
+                                                    text = { Text(region.name) },
+                                                    onClick = {
+                                                        regionDropdownExpanded = false
+                                                        onRegionSelected(region.name)
+                                                    },
+                                                )
+                                            }
                                         }
                                     }
                                 }
